@@ -1,0 +1,111 @@
+;
+; Copyright 2023 Craig Courtney
+;
+; Redistribution and use in source and binary forms, with or without modification, are permitted provided that the
+; following conditions are met:
+;
+; 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following
+;    disclaimer.
+;
+; 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the
+;    following disclaimer in the documentation and/or other materials provided with the distribution.
+;
+; 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote
+;    products derived from this software without specific prior written permission.
+;
+; THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES,
+; INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+; DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+; SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+; SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+; WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
+; USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+;
+
+;
+; bus_clock
+; ---------
+;
+; Drive bus clock.  Bus clock will be half the frequency in which this PIO program is called.
+;
+; Sideset Pin: PHI2
+;
+.program bus_clock
+.side_set 1
+.wrap_target
+    nop             side 0;
+    nop             side 1;
+.wrap
+
+;
+; bus_control
+; -----------
+;
+; Drives pin direction on data pins and triggers read / write cycles.
+;
+; ** Program must be called at 240 MHz frequency for bus timings to be correct. **
+;
+; RX Buffer - Populated with address + data for register reads/writes.
+;               Bits  0-15 - Unused and should be filtered out.
+;               Bit     16 - RW
+;               Bits 17-23 - Register Address
+;               Bits 24-31 - Value to be written
+;
+; Input Pins: RW, A0-A6, D0-D7
+; Output Pins: D0-D7
+; Jmp Pins: CS
+;
+.program bus_control
+skip:
+    wait 1 gpio 28          ; Sync to clock cycle
+    wait 0 gpio 28  [4]     ; Wait for end of pulse and wait equal to sync: time
+
+.wrap_target
+    mov osr, ~null  [6]     ; Setup OSR to drive data bus and wait for tADS + prop delay for CS (45.8ns)
+    jmp pin skip            ; Check to see if we are selected
+
+    in pins, 1              ; Load in RW signal
+    mov x, isr              ; Move RW into X
+    wait 1 gpio 28          ; Wait for clock pulse to start
+
+    jmp x-- read            ; If RW is high then we are reading
+
+write:
+    jmp sync                ; Jump here so clock cycles the same between read and write
+
+read:
+    out pindirs, 8          ; Make data pins drive the bus
+
+sync:
+    mov osr, null   [6]     ; Setup OSR to put data bus into HiZ and wait for tMDS (a slight over clock at 29.2ns)
+    in pins, 16             ; Load in RW / Address / Data
+    push                    ;
+    wait 0 gpio 28          ; Wait for end of clock pulse
+    out pindirs, 8          ; Wait for 40ns after clock drop to make sure we are outside tADS
+.wrap
+
+;
+; bus_read
+; --------
+; Orchestrates read requests for DMA transfers. DMA transfers should be setup to ping-pong between transferring
+; address and data.  Pin direction is controlled by bus_control program.  Before starting program Y must be set to
+; the base address of the register memory.  Register memory must be aligned 64 byte boundary in order for shift in
+; of the address to work correctly.
+;
+; ** Program must be called at 240 MHz frequency for bus timings to be correct. **
+;
+; RX Buffer - Populated with memory address of register to read.
+; Tx Buffer - Data that will be written out to the bus.
+;
+; Input Pins: A0-A6
+; Output Pins: D0-D7
+;
+.program bus_read
+.wrap_target
+    wait 1 gpio 28
+    wait 0 gpio 28  [7]         ; At clock low wait for tAD (a slight over clock at 29.2ns)
+    in pins, 7                  ; Shift in the read request and wait
+    pull
+    out pins, 8                 ; Send out the data
+    mov isr, y                  ; Move base address of register data
+.wrap
