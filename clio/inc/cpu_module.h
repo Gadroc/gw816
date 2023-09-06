@@ -30,7 +30,7 @@
 
 #include "config.h"
 
-#define SCR_CPU_SPEED_MASK 0b00000111
+#define SCR_CPU_SPEED_MASK (0b00000111)
 
 /**
  *

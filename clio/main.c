@@ -38,7 +38,7 @@ static union BUS_CONTROL_EVENT request;
 static uint16_t divider_int;
 
 #ifdef DISPLAY_REQUEST
-uint8_t display_count = 0;
+uint16_t display_count = 0;
 #endif
 
 /**
@@ -68,35 +68,33 @@ _Noreturn static __attribute__((optimize("O1")))  void bus_loop() {
 #ifdef DISPLAY_REQUEST
             if (display_count < DISPLAY_MAX) {
                  printf("%1c A:%04x D:%02x RAW:%08lx\n", BUS_EVENT_IS_READ(request) ? 'R' : 'W', BUS_EVENT_ADDR(request) + 0xFF80,
-                       request.data, request.raw);
+                       BUS_EVENT_IS_READ(request) ? REGISTER(BUS_EVENT_ADDR(request)) : request.data, request.raw);
                 display_count++;
             }
 #endif
 
             switch (request.address) {
                 case BUS_EVENT_WRITE(REG_ADDR_SCR):
-                    led_set(request.data & SCR_SIA_LED);
+                    led_set(request.data & SCR_SIA_LED_MASK);
                     cpu_set_freq(request.data & SCR_CPU_SPEED_MASK);
-                    break;
-
-                case BUS_EVENT_WRITE(REG_ADDR_RCR):
-                    if (request.data & RCR_ROM_RESET) {
+                    if (request.data & SCR_ROM_RESET) {
                         rom_reset();
                     }
-                    if (request.data & RCR_ROM_NEXT) {
-                        rom_next_byte();
-                    }
+                    break;
+
+                case BUS_EVENT_READ(REG_ADDR_RDR):
+                    rom_next_byte();
                     break;
 
                 case BUS_EVENT_WRITE(REG_ADDR_CDR):
                     SERIAL_TX_BYTE(console_uart_tx_buffer, SSR_CONSOLE_TX_READY, request.data)
                     break;
 
-                case BUS_EVENT_READ(REG_ADDR_CDR):
+            case BUS_EVENT_READ(REG_ADDR_CDR):
                     SERIAL_NEXT_BYTE(console_uart_rx_buffer, SSR_CONSOLE_RX_READY, REG_ADDR_CDR)
                     break;
 
-                case BUS_EVENT_READ(REG_ADDR_SSR):
+                case BUS_EVENT_READ(REG_ADDR_ISR):
                     serial_update_flags();
                     break;
             }

@@ -110,6 +110,7 @@ void bus_control_init(uint16_t divider_int, uint8_t divider_frac) {
     sm_config_set_out_pins(&config, BUS_DATA_PIN_BASE, 8);
     sm_config_set_in_pins(&config, BUS_RW_PIN);
     sm_config_set_jmp_pin(&config, BUS_CS_PIN);
+    sm_config_set_fifo_join(&config, PIO_FIFO_JOIN_RX );
     sm_config_set_clkdiv_int_frac(&config, divider_int, divider_frac);
     pio_sm_init(BUS_PIO, BUS_CONTROL_SM, offset, &config);
 

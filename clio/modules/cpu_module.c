@@ -23,6 +23,7 @@
  */
 
 #include <pico/stdlib.h>
+#include <pico/printf.h>
 #include "bus_module.pio.h"
 #include "reg_module.h"
 #include "cpu_module.h"

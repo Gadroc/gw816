@@ -83,7 +83,7 @@ void led_tasks() {
             default:
                 break;
         }
-        REGISTER_SET_MASKED(REG_ADDR_SCR, (led_state << 3), SCR_SIA_LED);
+        REGISTER_SET_MASKED(REG_ADDR_SCR, (led_state << 3), SCR_SIA_LED_MASK);
     }
 
     if (led_state > LED_STATE_ON) {

@@ -27,10 +27,9 @@
 
 #include "reg_module.h"
 
-#define RCR_ROM_RESET       0x01
-#define RCR_ROM_DATA_READY  0x02
-#define RCR_ROM_COMPLETE    0x04
-#define RCR_ROM_NEXT        0x08
+#define SCR_ROM_RESET       (0b00100000)
+#define SCR_ROM_DATA_READY  (0b01000000)
+#define SCR_ROM_COMPLETE    (0b10000000)
 
 enum rom_states {
     rom_state_unknown, rom_state_reset, rom_state_ready, rom_state_next
@@ -43,13 +42,13 @@ void rom_init();
 void rom_tasks();
 
 static inline void rom_reset() {
-    REGISTER_CLEAR_FLAG(REG_ADDR_RCR,RCR_ROM_DATA_READY);
+    REGISTER_CLEAR_FLAG(REG_ADDR_SCR,SCR_ROM_DATA_READY);
     rom_state = rom_state_reset;
 }
 
 static inline void rom_next_byte() {
+    REGISTER_CLEAR_FLAG(REG_ADDR_SCR, SCR_ROM_DATA_READY);
     if (rom_state == rom_state_ready) {
-        REGISTER_CLEAR_FLAG(REG_ADDR_RCR, RCR_ROM_DATA_READY);
         rom_state = rom_state_next;
     }
 }

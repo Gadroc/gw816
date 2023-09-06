@@ -25,7 +25,7 @@
 #ifndef CLIO_LED_MODULE_H
 #define CLIO_LED_MODULE_H
 
-#define SCR_SIA_LED   0x18
+#define SCR_SIA_LED_MASK   (0b00011000)
 
 extern volatile uint8_t led_state;
 extern volatile bool led_dirty;
@@ -36,7 +36,7 @@ void led_tasks();
 
 static inline void led_set(uint8_t state) {
     if (state != led_state) {
-        led_state = (state & SCR_SIA_LED) >> 3;
+        led_state = (state & SCR_SIA_LED_MASK) >> 3;
         led_dirty = true;
     }
 }
