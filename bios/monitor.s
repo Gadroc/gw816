@@ -29,13 +29,41 @@
 ;
 
 ;===============================================================================
-; System Vectors
-; Vectors used to call bios and kernel routines
+; ML Monitor
 ;===============================================================================
+.include "gw816.inc"
+.include "monitor.inc"
 
-.segment "SYSVECTORS"
+.segment "MONITORDATA"
+mm_hello: .byte "hello", 0
+mm_world: .byte "world", 0
 
-.export VEC_BIOS_INIT
-.import BiosInit
+.segment "MONITOR"
+MonitorInit:
+    rts
 
-VEC_BIOS_INIT:  .addr   BiosInit        ; Bios Initialization Routine
+MonitorStart:
+    cop COP_CONSOLE_CLEARSCREEN
+
+    ldx #00
+    ldy #00
+    cop COP_CONSOLE_SETCURSORPOS
+
+    lda #^mm_hello
+    SET_X_16BIT
+    ldx #mm_hello & $ffff
+    cop COP_CONSOLE_PUTSTRING
+    SET_X_8BIT
+
+    ldx #02
+    ldy #02
+    cop COP_CONSOLE_SETCURSORPOS
+
+    lda #^mm_world
+    SET_X_16BIT
+    ldx #mm_world & $ffff
+    cop COP_CONSOLE_PUTSTRING
+    SET_X_8BIT
+
+@end:
+    bra @end

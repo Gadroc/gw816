@@ -10,7 +10,7 @@ pico_sdk_init()
 
 add_executable(clio_firmware
         main.c inc/cpu_module.h modules/cpu_module.c inc/config.h modules/serial_module.c inc/serial_module.h inc/irq_module.h inc/reg_module.h modules/reg_module.c inc/bus_module.h modules/bus_module.c inc/ring_buffer.h inc/rom_module.h modules/rom_module.c inc/led_module.h modules/led_module.c
-        rom-bios.c rom-bootstrap.c)
+        rom-bios.c rom-bootstrap.c rom-monitor.c)
 include_directories(clio_firmware PRIVATE inc)
 add_custom_command(
         OUTPUT rom-bootstrap.c
@@ -24,6 +24,13 @@ add_custom_command(
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/bios.bin
 )
+add_custom_command(
+        OUTPUT rom-monitor.c
+        COMMAND xxd -i bios-monitor.bin ${CMAKE_CURRENT_BINARY_DIR}/rom-monitor.c
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/bios-monitor.bin
+)
+
 
 # Setup Program Descriptors
 pico_set_program_name(clio_firmware "GW816 Clio Firmware")

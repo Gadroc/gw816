@@ -5,7 +5,7 @@ ASFLAGS = --cpu $(CPU) --create-dep $(<:.s=.d) --list-bytes 0
 LD = ld65
 LDFLAGS = -m bios.map
 
-SOURCES = hardware_vectors.s bootstrap.s system_vectors.s bios.s
+SOURCES = hardware_vectors.s bootstrap.s bios.s serial.s console.s monitor.s
 PROGRAM = bios
 
 .SUFFIXES:

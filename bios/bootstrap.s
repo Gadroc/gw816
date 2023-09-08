@@ -37,42 +37,42 @@
 ;===============================================================================
 
 .include "gw816.inc"
-
-.export BootstrapStart
-.import VEC_BIOS_INIT
+.include "bootstrap.inc"
+.include "bios.inc"
 
 .segment "BOOTSTRAP"
 BootstrapStart:
         SET_NATIVE_MODE
-        EXP_M_8BIT
-        SET_X_16BIT
+        SET_MX_16BIT
+        lda #$ff00              ; User direct page to access Clio ROM data
+        tcd                     ; so we can use DBR to store data anywhere
+        SET_M_8BIT              ; without having to reset DBR to read next byte
 
-        ; Reset ROM and set LED to slow blink
-        ;SET_REGISETER REG_SCR, #%11000111, %00110000
-        SET_REGISTER REG_SCR, SCR_LED_SMASK^SCR_ROM_RESET, SCR_LED_SLOW|SCR_ROM_RESET
+        ; Reset ROM reading and set LED to slow blink
+        SET_REGISTER <REG_SCR, SCR_LED_SMASK^SCR_ROM_RESET, SCR_LED_SLOW|SCR_ROM_RESET
 
 @rom_copy_loop:
-        lda REG_SCR             ; Wait for ROM Ready bit to be set
-        bit #SCR_ROM_READY
+        lda <REG_SCR            ; Get current status
+        bit #SCR_ROM_READY      ; Check to see if a ROM byte is ready
         beq @rom_copy_loop
-        bit #SCR_ROM_COMPLETE
+        bit #SCR_ROM_COMPLETE   ; Check to see if the ROM is at end of file
         beq @copy_byte
-        SET_X_8BIT
-        jmp (VEC_BIOS_INIT)
+        SET_MX_8BIT             ; We are done reset MX bits and jump to BIOS
+        jmp BiosInit
 
 @copy_byte:
-        lda REG_RBA             ; Set data bank for byte copy
+        lda <REG_RBA            ; Set data bank for byte copy
         pha
         plb
 
-        ldx REG_RTA
-        lda REG_RDR             ; Load current ROM byte
-        sta a:$0000,x           ; Save to destination location
-        cmp a:$0000,x           ; Now verify it's written
+        ldx <REG_RTA            ; Load target address
+        lda <REG_RDR            ; Load current ROM byte
+        sta a:$0000,x           ; Store byte at it's target
+        cmp a:$0000,x           ; Now verify it's written correctly
         beq @rom_copy_loop
 
-@rom_fail:
-        SET_REGISTER REG_SCR, SCR_LED_SMASK, SCR_LED_FAST
+        ; We had a memory read/write failure so fast flash it is
+        SET_REGISTER <REG_SCR, SCR_LED_SMASK, SCR_LED_OFF
 @rom_fail_loop:
         bra @rom_fail_loop
 

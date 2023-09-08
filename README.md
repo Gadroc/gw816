@@ -66,9 +66,8 @@ possible.
 ## GW/OS Memory Map
 |  Start |    End | Description                               |
 |-------:|-------:|-------------------------------------------|
-| 000000 | 00CEFF | Direct Pages / Stacks (Managed by Kernel) |
-| 00CF00 | 00CFFF | BIO Direct Page                           |
-| 00D000 | 00FEFF | BIOS / Bootloader / Monitor               |
+| 000000 | 00CFFF | Direct Pages / Stacks (Managed by Kernel) |
+| 00D000 | 00FEFF | BIOS                                      |
 | 00FF00 | 00FF8F | I/O Registers                             |
 | 00FF90 | 00FFFF | BIOSCopy / Interrupt Vectors              |
 | 010100 | 01FFFF | BIOS                                      |
@@ -89,12 +88,35 @@ The GW816 does not have ROM chips, instead the Clio will copy the BIOS into RAM 
 control to it.
 
 ### Bus Interface Adapter (Hermes - In Progress)
-The BIA takes care of address decoding and PS/2 bus communications.
+The BIA takes care of address decoding and PS/2 communications.
+* Upper 8-Bit Address Latch
+* Databus Buffering
+* Address Decoding
+* IRQ Aggregation
+* PS/2 Ports
 
 ### Graphics Controller (Aether - Future)
-* Pico w/ HDMI (https://github.com/Wren6991/PicoDVI)
-* [VT-100 Font](https://en.wikipedia.org/wiki/VT100_encoding) (ISO-8859-1 and Code Page 1090)
+* Two Possible Implemetnation
+  * Pico w/ HDMI (Aether I)
+    * This is easiest to get going.  Bus interface PIO routines already developed via Clio and can use out of the box PIOs from Pico HDMI project.
+    * Timing requirements for 6502 BUS + HDMI amy be a challenge! Especially at 8Mhz.
+    * Only need read notifications on one address.
+    * https://github.com/Wren6991/PicoDVI
+  * Upduino w/ VGA (Aether II)
+    * More "fun" as I would need to design the verilog (adapt from Vera?).
+    * Least amount of limitations and will be implemented if Aether I can not meet needs.
+    * https://www.mouser.com/ProductDetail/Digilent/410-345?qs=pfd5qewlna6zEmFVuW8tyQ%3D%3D
+* 12-Bit Color Palette
+* Video Modes
+  * 80x25 Tex [VT-100 Font](https://en.wikipedia.org/wiki/VT100_encoding) (ISO-8859-1 and Code Page 1090)
+  * 320x240 256 Color
+  * 2 Layer 320x240 16-Color
+  * 640x480 16 Color
 
 ### Audio Controller (Apollo - Future)
 * Pico w/ I2S Audio channel
 * Running various sound chip emulation routines (TBD)
+
+### 65C22 VIA (future)
+* Timers
+* SNES Port Sampling

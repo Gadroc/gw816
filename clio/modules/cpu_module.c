@@ -34,7 +34,7 @@ static uint clock_current_freq = 8;
 // Dividers for system clock (240 MHz) to drive the bus_clock PIO program.
 //
 // 0 = 10Khz, 1 = 100 kHz, 2 = 500 kHZ, 3 = 1 MHz, 4 = 2 MHz, 5 = 4 MHz, 6 = 6 MHz, 7 = 8 MHz
-static const uint16_t clock_div_int[] = {12000, 1200, 240, 120, 60, 30, 20, 15 };
+static const uint16_t clock_div_int[] = {24000, 1200, 240, 120, 60, 30, 20, 15 };
 
 void cpu_init(uint8_t freq_id) {
     gpio_init(BUS_RESET_PIN);

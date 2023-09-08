@@ -95,3 +95,4 @@ fabric.properties
 *.map
 *.d
 *.o
+*.bin

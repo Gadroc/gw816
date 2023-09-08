@@ -29,45 +29,69 @@ extern const uint8_t bios_bin[];
 extern unsigned int bios_bin_len;
 extern const uint8_t bios_bootstrap_bin[];
 extern unsigned int bios_bootstrap_bin_len;
+extern const uint8_t bios_monitor_bin[];
+extern unsigned int bios_monitor_bin_len;
 
-volatile enum rom_states rom_state = rom_state_unknown;
+volatile enum rom_register_states rom_state = rom_state_unknown;
 
 static const uint32_t bios_addr = 0xd000;
-static size_t bios_index;
+static const uint32_t monitor_addr = 0x10000;
+
+static bool bios_complete;
+
+static const uint8_t *rom_data;
+static uint32_t rom_start;
+static uint32_t rom_size;
+static uint32_t rom_index;
 
 void rom_init() {
     for (uint32_t i = 0; i < bios_bootstrap_bin_len; i++) {
-        REGISTER(REG_ADDR_BOOTLOADER+i) = bios_bootstrap_bin[i];
+        REGISTER(REG_ADDR_BOOTLOADER + i) = bios_bootstrap_bin[i];
     }
-    bios_index = 0x00;
+    REGISTER_CLEAR_FLAG(REG_ADDR_SCR, SCR_ROM_COMPLETE);
+    REGISTER_CLEAR_FLAG(REG_ADDR_SCR, SCR_ROM_DATA_READY);
+}
+
+void rom_set_byte() {
+    REGISTER(REG_ADDR_RA_LO) = (rom_start + rom_index) & 0xff;
+    REGISTER(REG_ADDR_RA_HI) = ((rom_start + rom_index) >> 8) & 0xff;
+    REGISTER(REG_ADDR_RA_BA) = ((rom_start + rom_index) >> 16) & 0xff;
+    REGISTER(REG_ADDR_RDR)   = rom_data[rom_index];
+    REGISTER_SET_FLAG(REG_ADDR_SCR, SCR_ROM_DATA_READY);
+    rom_state = rom_state_ready;
 }
 
 void rom_tasks() {
     switch (rom_state) {
         case rom_state_reset:;
-            REGISTER(REG_ADDR_RA_LO) = bios_addr & 0xff;
-            REGISTER(REG_ADDR_RA_HI) = (bios_addr >> 8) & 0xff;
-            REGISTER(REG_ADDR_RA_BA) = (bios_addr >> 16) & 0xff;
-            REGISTER(REG_ADDR_RDR)   = bios_bin[bios_index];
-            bios_index = 0;
             REGISTER_CLEAR_FLAG(REG_ADDR_SCR, SCR_ROM_COMPLETE);
-            REGISTER_SET_FLAG(REG_ADDR_SCR, SCR_ROM_DATA_READY);
-            rom_state = rom_state_ready;
+
+            bios_complete = false;
+            rom_data = bios_bin;
+            rom_start = bios_addr;
+            rom_size = bios_bin_len;
+            rom_index = 0;
+            rom_set_byte();
+
             break;
 
         case rom_state_next:
-            bios_index++;
-            if (bios_index == bios_bin_len) {
-                REGISTER_SET_FLAG(REG_ADDR_SCR, SCR_ROM_COMPLETE);
-                REGISTER_SET_FLAG(REG_ADDR_SCR, SCR_ROM_DATA_READY);
-                rom_state = rom_state_unknown;
+            rom_index++;
+            if (rom_index == rom_size) {
+                if (bios_complete) {
+                    REGISTER_SET_FLAG(REG_ADDR_SCR, SCR_ROM_COMPLETE);
+                    REGISTER_SET_FLAG(REG_ADDR_SCR, SCR_ROM_DATA_READY);
+                    rom_state = rom_state_unknown;
+                } else {
+                    bios_complete = true;
+                    rom_data = bios_monitor_bin;
+                    rom_size = bios_monitor_bin_len;
+                    rom_start = monitor_addr;
+                    rom_index = 0;
+                    rom_set_byte();
+                }
             } else {
-                REGISTER(REG_ADDR_RA_LO) = (bios_addr + bios_index) & 0xFF;
-                REGISTER(REG_ADDR_RA_HI) = ((bios_addr + bios_index)  >> 8) & 0xff;
-                REGISTER(REG_ADDR_RA_BA) = ((bios_addr + bios_index)  >> 16) & 0xff;
-                REGISTER(REG_ADDR_RDR)   = bios_bin[bios_index];
-                REGISTER_SET_FLAG(REG_ADDR_SCR, SCR_ROM_DATA_READY);
-                rom_state = rom_state_ready;
+                rom_set_byte();
             }
             break;
 

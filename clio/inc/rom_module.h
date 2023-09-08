@@ -31,11 +31,11 @@
 #define SCR_ROM_DATA_READY  (0b01000000)
 #define SCR_ROM_COMPLETE    (0b10000000)
 
-enum rom_states {
+enum rom_register_states {
     rom_state_unknown, rom_state_reset, rom_state_ready, rom_state_next
 };
 
-extern volatile enum rom_states rom_state;
+extern volatile enum rom_register_states rom_state;
 
 void rom_init();
 

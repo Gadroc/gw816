@@ -33,12 +33,13 @@
 ; Vectors necessary for 65C816 operation of reset and irqs.
 ;===============================================================================
 
-.import BootstrapStart
+.include "bios.inc"
+.include "bootstrap.inc"
 
 .segment "HWVECTORS"
     .addr   $0000               ; Reserved
-    .addr   $0000               ; Reserved
-    .addr   $0000               ; Native Mode COP Vector
+    .addr   $0000               ; Reservedls
+    .addr   BiosDispatch        ; Native Mode COP Vector
     .addr   $0000               ; Native Mode BRK Vector
     .addr   $0000               ; Native Mode ABORT Vector
     .addr   $0000               ; Native Mode NMI Vector
