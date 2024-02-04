@@ -28,11 +28,6 @@
 #include "led_module.h"
 #include "reg_module.h"
 
-#define LED_STATE_OFF  0x0
-#define LED_STATE_ON   0x1
-#define LED_STATE_SLOW 0x2
-#define LED_STATE_FAST 0x3
-
 #define LED_INTERVAL_FAST_MS 100
 #define LED_INTERVAL_SLOW_MS 500
 
@@ -50,8 +45,8 @@ void led_init() {
     gpio_init(SYS_LED_PIN);
     gpio_set_dir(SIA_LED_PIN, true);
     gpio_set_dir(SYS_LED_PIN, true);
-    gpio_put(SIA_LED_PIN, false);
-    gpio_put(SYS_LED_PIN, false);
+
+    led_reset();
 }
 
 void led_tasks() {

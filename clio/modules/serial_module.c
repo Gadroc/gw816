@@ -31,18 +31,13 @@ struct ring_buffer console_uart_tx_buffer;
 struct ring_buffer data_uart_rx_buffer;
 struct ring_buffer data_uart_tx_buffer;
 
+// TODO Convert to dual CDC direct instead of Pico STDIO over CDC
 void serial_init() {
-    ring_buffer_init(&console_uart_rx_buffer);
-    ring_buffer_init(&console_uart_tx_buffer);
-    ring_buffer_init(&data_uart_rx_buffer);
-    ring_buffer_init(&data_uart_tx_buffer);
-
-    REGISTER_SET_FLAG(REG_ADDR_ISR, SSR_CONSOLE_TX_READY);
-    REGISTER_CLEAR_FLAG(REG_ADDR_ISR, SSR_CONSOLE_RX_READY);
-    REGISTER_SET_FLAG(REG_ADDR_ISR, SSR_DATA_TX_READY);
-    REGISTER_CLEAR_FLAG(REG_ADDR_ISR, SSR_DATA_RX_READY);
+    stdio_init_all();
+    serial_reset();
 }
 
+// TODO If CDC is not connected we need to throw away data and not block
 void serial_tasks() {
     if (!ring_buffer_is_empty(&console_uart_tx_buffer)) {
         putchar(ring_buffer_get_byte(&console_uart_tx_buffer));

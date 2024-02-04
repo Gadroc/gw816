@@ -26,10 +26,10 @@
 
 #include <hardware/pio.h>
 
-#define START_FREQ 7
-#define USE_DMA
+#define START_FREQ 4
 //#define DISPLAY_REQUEST
-#define DISPLAY_MAX 100
+#define DISPLAY_MAX 1000
+#define USE_DMA
 
 #define BUS_PIN_BASE        0
 #define BUS_RW_PIN          (BUS_PIN_BASE)

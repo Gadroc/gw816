@@ -25,19 +25,21 @@
 #include "rom_module.h"
 #include <stdio.h>
 
-extern const uint8_t bios_bin[];
-extern unsigned int bios_bin_len;
-extern const uint8_t bios_bootstrap_bin[];
-extern unsigned int bios_bootstrap_bin_len;
-extern const uint8_t bios_monitor_bin[];
-extern unsigned int bios_monitor_bin_len;
+extern const uint8_t rom_kernel_bin[];
+extern unsigned int rom_kernel_bin_len;
+
+extern const uint8_t rom_bootstrap_bin[];
+extern unsigned int rom_bootstrap_bin_len;
+
+extern const uint8_t rom_dos_bin[];
+extern unsigned int rom_dos_bin_len;
 
 volatile enum rom_register_states rom_state = rom_state_unknown;
 
-static const uint32_t bios_addr = 0xd000;
-static const uint32_t monitor_addr = 0x10000;
+static const uint32_t kernel_addr = 0xe000;
+static const uint32_t dos_addr = 0x10000;
 
-static bool bios_complete;
+static bool kernel_complete;
 
 static const uint8_t *rom_data;
 static uint32_t rom_start;
@@ -45,11 +47,10 @@ static uint32_t rom_size;
 static uint32_t rom_index;
 
 void rom_init() {
-    for (uint32_t i = 0; i < bios_bootstrap_bin_len; i++) {
-        REGISTER(REG_ADDR_BOOTLOADER + i) = bios_bootstrap_bin[i];
+    for (uint32_t i = 0; i < rom_bootstrap_bin_len; i++) {
+        REGISTER(REG_ADDR_BOOTLOADER + i) = rom_bootstrap_bin[i];
     }
-    REGISTER_CLEAR_FLAG(REG_ADDR_SCR, SCR_ROM_COMPLETE);
-    REGISTER_CLEAR_FLAG(REG_ADDR_SCR, SCR_ROM_DATA_READY);
+    rom_reset();
 }
 
 void rom_set_byte() {
@@ -66,10 +67,10 @@ void rom_tasks() {
         case rom_state_reset:;
             REGISTER_CLEAR_FLAG(REG_ADDR_SCR, SCR_ROM_COMPLETE);
 
-            bios_complete = false;
-            rom_data = bios_bin;
-            rom_start = bios_addr;
-            rom_size = bios_bin_len;
+            kernel_complete = false;
+            rom_data = rom_kernel_bin;
+            rom_start = kernel_addr;
+            rom_size = rom_kernel_bin_len;
             rom_index = 0;
             rom_set_byte();
 
@@ -78,15 +79,15 @@ void rom_tasks() {
         case rom_state_next:
             rom_index++;
             if (rom_index == rom_size) {
-                if (bios_complete) {
+                if (kernel_complete || rom_dos_bin_len == 0) {
                     REGISTER_SET_FLAG(REG_ADDR_SCR, SCR_ROM_COMPLETE);
                     REGISTER_SET_FLAG(REG_ADDR_SCR, SCR_ROM_DATA_READY);
                     rom_state = rom_state_unknown;
                 } else {
-                    bios_complete = true;
-                    rom_data = bios_monitor_bin;
-                    rom_size = bios_monitor_bin_len;
-                    rom_start = monitor_addr;
+                    kernel_complete = true;
+                    rom_data = rom_dos_bin;
+                    rom_start = dos_addr;
+                    rom_size = rom_dos_bin_len;
                     rom_index = 0;
                     rom_set_byte();
                 }

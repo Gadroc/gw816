@@ -66,19 +66,19 @@ _Noreturn static __attribute__((optimize("O1")))  void bus_loop() {
             request.raw = NEXT_BUS_REQUEST;
 
 #ifdef DISPLAY_REQUEST
-            if (display_count < DISPLAY_MAX) {
+//            if (display_count < DISPLAY_MAX) {
                  printf("%1c A:%04x D:%02x RAW:%08lx\n", BUS_EVENT_IS_READ(request) ? 'R' : 'W', BUS_EVENT_ADDR(request) + 0xFF80,
                        BUS_EVENT_IS_READ(request) ? REGISTER(BUS_EVENT_ADDR(request)) : request.data, request.raw);
-                display_count++;
-            }
+//                display_count++;
+//            }
 #endif
 
             switch (request.address) {
                 case BUS_EVENT_WRITE(REG_ADDR_SCR):
                     led_set(request.data & SCR_SIA_LED_MASK);
-                    cpu_set_freq(request.data & SCR_CPU_SPEED_MASK);
+                    //cpu_set_freq(request.data & SCR_CPU_SPEED_MASK);
                     if (request.data & SCR_ROM_RESET) {
-                        rom_reset();
+                        rom_read_reset();
                     }
                     break;
 
@@ -108,29 +108,43 @@ _Noreturn static __attribute__((optimize("O1")))  void bus_loop() {
  */
 _Noreturn void peripheral_loop() {
     while (true) {
-        // Manage ROM Load
-        rom_tasks();
+        if (gpio_get(BUS_RESET_PIN)) {
+            // Manage ROM Load
+            rom_tasks();
 
-        // Check UART Buffers
-        serial_tasks();
+            // Check UART Buffers
+            serial_tasks();
 
-        // Manage leds
-        led_tasks();
+            // Manage leds
+            led_tasks();
+
+        } else {
+            rom_reset();
+            serial_reset();
+            led_reset();
+        }
     }
 }
 
 int main() {
-    // TODO If vbus is connected then we should wait for CDC serial on console prot before releasing cpu
-    // TODO If vbus is connected and CDC console drops we should put cpu in reset
 
+    // We need to "overclock" the RP2040 in order to keep up over 5Mhz or so
+    // target system is 8Mhz
+    set_sys_clock_khz(256000,true);
+
+    // Setup Power Supply
     gpio_init(23);
     gpio_set_dir(23, true);
     gpio_put(23, true);
 
-    set_sys_clock_khz(240000,true);
+    // Setup RESET sense pin
+    gpio_init(BUS_RESET_PIN);
+    gpio_set_dir(BUS_RESET_PIN, false);
 
-    stdio_init_all();
-    sleep_ms(4000);
+    // Initialize console uart
+    // TODO If vbus is connected then we should wait for CDC serial on console prot before releasing cpu
+    // TODO If vbus is connected and CDC console drops we should put cpu in reset
+    serial_init();
 
     // Initialize registers
     registers_init();
@@ -139,7 +153,7 @@ int main() {
     bus_init(divider_int);
 
     // Initialize Reset and Hold CPU in reset
-    cpu_init(START_FREQ);
+    //cpu_init(START_FREQ);
 
     // Initialize rom
     rom_init();
@@ -147,14 +161,8 @@ int main() {
     // Initialize led control
     led_init();
 
-    // Initialize console uart
-    serial_init();
-
     // Start the bus processing loop
     multicore_launch_core1(bus_loop);
-
-    // Release CPU from reset
-    cpu_reset_release();
 
     // Start the peripheral loop
     peripheral_loop();

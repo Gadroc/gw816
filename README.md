@@ -1,122 +1,111 @@
 # GW816
-The GW816 is my hobby project to explore hardware and os design.  This is targeted at an era
-of nostalgic era for me as my first experience in software development was learning basic then assembly
-on my Commodore 64.  The GW816 represents what would have been my dream next computer in 1985 as the Amiga
-was far outside the range of my wallet as a teenager.
+The GW816 is my hobby project to explore hardware and os design.  This is targeted at an era of nostalgic era for me as my first experience in software development was learning basic then assembly on my Commodore 64.  The GW816 is a what if alternative to the Commodore 128 as a successor to the Commodore 64.  It's aiming at similar goals from the 64 that the Apple IIgs was to the Apple II.  The GW816 is not seeking to be backwards compatible with the 64.
 
 ## Design Goals
-Create a 16-bit computer based on at 65C816 which would fit into the commodore line as an alternate to
-the Commodore 128.  It would sit in between the C64 and amiga but with much better Graphics and Sound
-capabilities than the 128.
+Target goals for hardware and software running the GW816.
 
-* When possible use hardware which can be easily sourced today
-* Physical hardware does not need to be period accurate, but interface to software development does
-* Storage should be removable and easily read/written from current computers
-* CDC Serial over USB (RS-232 serial ports are not common enough anymore and USB dongle are a pain)
-* 3.3V based to ease component selection
-
-For at least the first revisions I will be emulating new chipsets using Raspberry Pi Picos.  While this will 
-limit me to roughly 8Mhz I think that is actually a reasonable speed for the time period.  This will enable
-me to rapidly prototype these chips using existing software libraries for the Pico.
-
-Special thanks to [Rumblethumps](https://www.youtube.com/@rumbledethumps) as his 
-[picocomputer](https://github.com/picocomputer) inspired me.  Although my design has taken a different path, 
-and I've implemented as little os software as possible in the pico, instead favoring using the pico software
-to emulate hardware.  Without his pioneering of PIO interface with the 6502 most of this design would not be
-possible.
-
-## Hardware Features
-* 65C816 Processor at 8Mhz
-* 1MB of RAM (Supports up to 16MB via memory expansion slot)
-* 2 CDC Serial Ports
-  * Console (working)
-  * Data (future)
-* SD Card (via SPI)
-* RTC (via SPI)
-  * 64 Bytes Battery Backed RAM
-* PS/2 Keyboard / Mouse Interface
-* Sound 
-  * (... stats here ...)
+### Hardware
+* 65C816 Processor Based System
+* 8Mhz Target Clock Speed
+* At least 1MB of RAM
+* 2 Serial Ports (1 for serial console, 1 for data)
+* SD Card for storage
+* Real Time Clock
+* NVRAM/Battery Backed RAM for system config
+* PS/2 Keyboard & Mouse Support
 * Video
-  * 128K Video RAM
-  * 15-Bit color palette
-  * 640x480 VGA Native Output
-* Expansion port for add in cards (full buss access, no DMA support)
+  * 640x480 Native VGA Output
+  * 80x25 Tex [VT-100 Font](https://en.wikipedia.org/wiki/VT100_encoding) (ISO-8859-1 and Code Page 1090)
+  * Min 320x240 16 color full graphics mode
+  * Redefinable Tile/Text character capability
+  * Sprite Support (size & qty tbd)
+* Sound
+  * TBD
 
-## BIOS Features (In Progress)
-* SDCard IO
-* FAT32 File System
-* RTC Functions
-* Bootloader - Find's possible kernels and allows user to select one
+### Operating System
+* Pre-emptive task system
+  * Memory allocation (no MMU so honor system)
+  * Shared memory blocks
+  * Message based IPC
 * ML Monitor
-* PS/2 Keyboard & Mouse
-* VT-100 Local/Remote console fullscreen editor
+* FAT32 File System
+* VT-100/ANSI Local/Remote console fullscreen editor
   * ANSI Color Escape Codes Supported
   * DEC Special Graphics
   * Merges PS/2 Keyboard and Serial Console port
+* Relocatable Code Loader ([O65 Format](http://www.6502.org/users/andre/o65/fileformat.html))
 
-## Basic Kernel (Future)
-* Loads as OS and implements a Commodore like full-screen editor and basic single tasking machine
+## Hardware Implementation Notes
 
-## GW/OS Kernel (Future)
-* GUI Based Operating System
-* Relocatable code & co-operative multi-tasking
-* GUI application tool library
+### Glue Logic / Custom Chips
+The GW816 uses [Cyclone IV Development Board](https://www.aliexpress.us/item/2251832762966437.html) (Aether III) as a development platform for most of it's implementation.  Based on GW816 goals most of what is done in the FPGA would be done using custom ASICs like the VIC-II and SID, which the FPGA board is a substitue for.  I also want to learn VHDL and digital/synchronous circuit design.
 
-## GW/OS Memory Map
-|  Start |    End | Description                               |
-|-------:|-------:|-------------------------------------------|
-| 000000 | 00CFFF | Direct Pages / Stacks (Managed by Kernel) |
-| 00D000 | 00FEFF | BIOS                                      |
-| 00FF00 | 00FF8F | I/O Registers                             |
-| 00FF90 | 00FFFF | BIOSCopy / Interrupt Vectors              |
-| 010100 | 01FFFF | BIOS                                      |
-| 020000 | 0FFFFF | Kernel / OS / Application & Data          |
+This choice also radically reduces cost and complexity as many of the custom ASICs will fit in this FPGA.  The choosen board had appropraite connectors to just plug into a mainboard so finished product should be hand solderable.  Lastly the dev board has enough RAM to fully max out the 65816 RAM capacity.
 
-## Chipset Overview
+This choice leans towards using 3.3v for the processor which will limit speeds, but 8Mhz is the fatest several other components work anyways.  An 8Mhz 65816 should be on par with the speed of contemporary era PCs, Macs and Amigas.
 
-### System Interface Adapter (Clio - In Progress)
-USB: VID 0x1209 PID: 0xD0DB
-Clio is the primary chipset orchestrating the GW816.  It is responsible for the following:
-* Clock Generation (Working)
-* CPU Reset Control (Working)
-* BIOS / Interrupt Vectors (Working)
-* SPI Controller for SD and RTC (Future)
-* Timers (Future)
+### Form Factor
+Final form factor is currently undecided.  Two options:
+* C64c Case using C64 keyboard to PS/2 controller (Need to have internal header for ps/2 keyboard and jumpers to disable external port).
+* Mini ITX
 
-The GW816 does not have ROM chips, instead the Clio will copy the BIOS into RAM and transfer
-control to it.
+### Power
+Target standard 12v wall wart power supply with onboard regulation to 5v and 3.3v power. (Possibly pico atx power supply although the system does not use 12v).
 
-### Bus Interface Adapter (Hermes - In Progress)
-The BIA takes care of address decoding and PS/2 communications.
-* Upper 8-Bit Address Latch
-* Databus Buffering
+### Serial Port
+Data serial port has two options:
+* Full external RS232 - TIA port used to drive external RS232 based Wifi Modem
+* Bake Wifi board onto motherboard
+
+### Expansion Slot
+Board will have one expansion slot for development of future peripherals.
+
+## Hardware Blocks
+
+### Clock Generator (FPGA)
+
+### Reset Controll (FPGA)
+
+### Bus Controller (FPGA)
 * Address Decoding
-* IRQ Aggregation
-* PS/2 Ports
+* Bus Mediation
+  * Address Latching
+  * Peripheral cross connects
 
-### Graphics Controller (Aether - Future)
-* Two Possible Implemetnation
-  * Pico w/ HDMI (Aether I)
-    * This is easiest to get going.  Bus interface PIO routines already developed via Clio and can use out of the box PIOs from Pico HDMI project.
-    * Timing requirements for 6502 BUS + HDMI amy be a challenge! Especially at 8Mhz.
-    * Only need read notifications on one address.
-    * https://github.com/Wren6991/PicoDVI
-  * Upduino w/ VGA (Aether II)
-    * More "fun" as I would need to design the verilog (adapt from Vera?).
-    * Least amount of limitations and will be implemented if Aether I can not meet needs.
-    * https://www.mouser.com/ProductDetail/Digilent/410-345?qs=pfd5qewlna6zEmFVuW8tyQ%3D%3D
-* 12-Bit Color Palette
-* Video Modes
-  * 80x25 Tex [VT-100 Font](https://en.wikipedia.org/wiki/VT100_encoding) (ISO-8859-1 and Code Page 1090)
-  * 320x240 256 Color
-  * 2 Layer 320x240 16-Color
-  * 640x480 16 Color
+### Memory Controller (FPGA)
+* 65xxx BUS to SDRAM address translation
+* SDRAM initialization and refresh
+* Dev board SDRAM part can achieve 8Mhz 65xxx bus by overclocking to 2CL at 133Mhz (Spec says 3CL for 133Mhz)
 
-### Audio Controller (Apollo - Future)
-* Pico w/ I2S Audio channel
-* Running various sound chip emulation routines (TBD)
+#### IO Address Map
+The IO MAP is repeated bank 00-02.  This allows for direct hardware access for tasks located in the first three banks of memory. 
 
-### 65C22 VIA (future)
-* Timers
-* SNES Port Sampling
+TODO Update table with latest IO addresss map from hardware design.
+
+| Start |  End | Description                   |
+|------:|-----:|-------------------------------|
+|  FF00 | FF1F | Expansion slot                |
+|  FF20 | FF3F | Apollo                        |
+|  FF40 | FF4F | System VIA (SNES Controllers) |
+|  FF50 | FF5F | User Port VIA                 |
+|  FF60 | FF7F | Aether                        |
+|  FF80 | FF9F | Clio                          |
+|  FFA0 | FFFF | Bootstrap & Vectors           |
+
+### System Interface Adapter / Boot ROM -- Clio (Pico)
+For at least the first revisions I will be using a Raspberry Pico (RP2040) as a bootstrap ROM, CDC based UARTs(VID 0x1209 PID: 0xD0DB), and PS2 Keyboard & Mouse Controller.  The Pico is only capable of direct 65xxx bus access up to 8Mhz, and in doing so it must start access during low phase of PHI2 meaning interleaving of the RAM bus is not supported with out a separate peripherial BUS.
+
+Clio will present a bootstrap program and copy kernal into RAM before handing control over to the kernel.
+
+Special thanks to [Rumblethumps](https://www.youtube.com/@rumbledethumps) as his [picocomputer](https://github.com/picocomputer) inspired me.  Although my design has taken a different path, and I've implemented as little os software as possible in the pico, instead favoring using the pico software to emulate hardware.  Without his work on PIO interface with the 6502 most of this design would not be possible.
+
+### Interrupt Controller (FPGA)
+
+### SPI Controller (FPGA)
+
+### Video (FPGA)
+
+### Sound (Pico)
+Likely use the Pico to emulate an contemporary audio chip but with a direct 65xxx bus connection.  Board will have a Pico socket per wired for I2S audio and have on board audio amp for line out connections.
+
+### RTC (...)

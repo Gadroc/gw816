@@ -54,19 +54,4 @@ void cpu_set_freq(uint8_t freq_id);
  */
 uint8_t cpu_get_freq();
 
-/**
- * Holds the CPU in reset.
- */
-static inline void cpu_reset_hold() {
-    gpio_put(BUS_RESET_PIN, false);
-}
-
-/**
- * Releases the CPU from reset.
- */
-static inline void cpu_reset_release() {
-    // TODO Verify we have a minimum reset time before releasing
-    gpio_put(BUS_RESET_PIN, true);
-}
-
 #endif //CLIO_SIA_CLOCK_MODULE_H

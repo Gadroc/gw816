@@ -45,6 +45,18 @@ void serial_init();
 
 void serial_tasks();
 
+static inline void serial_reset() {
+    ring_buffer_init(&console_uart_rx_buffer);
+    ring_buffer_init(&console_uart_tx_buffer);
+    ring_buffer_init(&data_uart_rx_buffer);
+    ring_buffer_init(&data_uart_tx_buffer);
+
+    REGISTER_SET_FLAG(REG_ADDR_ISR, SSR_CONSOLE_TX_READY);
+    REGISTER_CLEAR_FLAG(REG_ADDR_ISR, SSR_CONSOLE_RX_READY);
+    REGISTER_SET_FLAG(REG_ADDR_ISR, SSR_DATA_TX_READY);
+    REGISTER_CLEAR_FLAG(REG_ADDR_ISR, SSR_DATA_RX_READY);
+}
+
 #define SERIAL_TX_BYTE(buffer, tx_bit, data)  { \
     if (!ring_buffer_is_full(&buffer)) {        \
         ring_buffer_put_byte(&buffer, data);    \

@@ -33,14 +33,13 @@ static uint clock_current_freq = 8;
 //
 // Dividers for system clock (240 MHz) to drive the bus_clock PIO program.
 //
-// 0 = 10Khz, 1 = 100 kHz, 2 = 500 kHZ, 3 = 1 MHz, 4 = 2 MHz, 5 = 4 MHz, 6 = 6 MHz, 7 = 8 MHz
-static const uint16_t clock_div_int[] = {24000, 1200, 240, 120, 60, 30, 20, 15 };
+// 0 = 2.5Khz, 1 = 100 kHz, 2 = 500 kHZ, 3 = 1 MHz, 4 = 2 MHz, 5 = 4 MHz, 6 = 6 MHz, 7 = 8 MHz
+static const uint16_t clock_div_int[] = {65535, 1280, 256, 128, 64, 32, 21, 16 };
 
 void cpu_init(uint8_t freq_id) {
     gpio_init(BUS_RESET_PIN);
-    gpio_set_dir(BUS_RESET_PIN, true);
+    gpio_set_dir(BUS_RESET_PIN, false);
 
-    cpu_reset_hold();
     clock_current_freq = (freq_id <= 7) ? freq_id : 7;
     REGISTER_SET_MASKED(REG_ADDR_SCR, clock_current_freq, SCR_CPU_SPEED_MASK);
 

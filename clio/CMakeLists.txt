@@ -10,27 +10,26 @@ pico_sdk_init()
 
 add_executable(clio_firmware
         main.c inc/cpu_module.h modules/cpu_module.c inc/config.h modules/serial_module.c inc/serial_module.h inc/irq_module.h inc/reg_module.h modules/reg_module.c inc/bus_module.h modules/bus_module.c inc/ring_buffer.h inc/rom_module.h modules/rom_module.c inc/led_module.h modules/led_module.c
-        rom-bios.c rom-bootstrap.c rom-monitor.c)
+        rom-kernel.c rom-dos.c rom-bootstrap.c)
 include_directories(clio_firmware PRIVATE inc)
 add_custom_command(
         OUTPUT rom-bootstrap.c
-        COMMAND xxd -i bios-bootstrap.bin ${CMAKE_CURRENT_BINARY_DIR}/rom-bootstrap.c
+        COMMAND xxd -i rom-bootstrap.bin ${CMAKE_CURRENT_BINARY_DIR}/rom-bootstrap.c
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/bios-bootstrap.bin
+        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/rom-bootstrap.bin
 )
 add_custom_command(
-        OUTPUT rom-bios.c
-        COMMAND xxd -i bios.bin ${CMAKE_CURRENT_BINARY_DIR}/rom-bios.c
+        OUTPUT rom-kernel.c
+        COMMAND xxd -i rom-kernel.bin ${CMAKE_CURRENT_BINARY_DIR}/rom-kernel.c
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/bios.bin
+        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/rom-kernel.bin
 )
 add_custom_command(
-        OUTPUT rom-monitor.c
-        COMMAND xxd -i bios-monitor.bin ${CMAKE_CURRENT_BINARY_DIR}/rom-monitor.c
+        OUTPUT rom-dos.c
+        COMMAND xxd -i rom-dos.bin ${CMAKE_CURRENT_BINARY_DIR}/rom-dos.c
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/bios-monitor.bin
+        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/rom-dos.bin
 )
-
 
 # Setup Program Descriptors
 pico_set_program_name(clio_firmware "GW816 Clio Firmware")

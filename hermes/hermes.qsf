@@ -1,0 +1,175 @@
+# -------------------------------------------------------------------------- #
+#
+# Copyright (C) 2022  Intel Corporation. All rights reserved.
+# Your use of Intel Corporation's design tools, logic functions 
+# and other software and tools, and any partner logic 
+# functions, and any output files from any of the foregoing 
+# (including device programming or simulation files), and any 
+# associated documentation or information are expressly subject 
+# to the terms and conditions of the Intel Program License 
+# Subscription Agreement, the Intel Quartus Prime License Agreement,
+# the Intel FPGA IP License Agreement, or other applicable license
+# agreement, including, without limitation, that your use is for
+# the sole purpose of programming logic devices manufactured by
+# Intel and sold by Intel or its authorized distributors.  Please
+# refer to the applicable agreement for further details, at
+# https://fpgasoftware.intel.com/eula.
+#
+# -------------------------------------------------------------------------- #
+#
+# Quartus Prime
+# Version 21.1.1 Build 850 06/23/2022 SJ Lite Edition
+# Date created = 17:09:29  August 07, 2023
+#
+# -------------------------------------------------------------------------- #
+#
+# Notes:
+#
+# 1) The default values for assignments are stored in the file:
+#		Decoda_assignment_defaults.qdf
+#    If this file doesn't exist, see file:
+#		assignment_defaults.qdf
+#
+# 2) Intel recommends that you do not modify this file. This
+#    file is updated automatically by the Quartus Prime software
+#    and any changes you make may be lost or overwritten.
+#
+# -------------------------------------------------------------------------- #
+
+
+set_global_assignment -name FAMILY "MAX II"
+set_global_assignment -name DEVICE EPM240T100C5
+set_global_assignment -name TOP_LEVEL_ENTITY hermes
+set_global_assignment -name ORIGINAL_QUARTUS_VERSION 21.1.1
+set_global_assignment -name PROJECT_CREATION_TIME_DATE "17:09:29  AUGUST 07, 2023"
+set_global_assignment -name LAST_QUARTUS_VERSION "21.1.1 Lite Edition"
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
+set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
+set_global_assignment -name MAX_CORE_JUNCTION_TEMP 85
+set_global_assignment -name DEVICE_FILTER_PACKAGE TQFP
+set_global_assignment -name DEVICE_FILTER_PIN_COUNT 100
+set_global_assignment -name DEVICE_FILTER_SPEED_GRADE 5
+set_global_assignment -name ERROR_CHECK_FREQUENCY_DIVISOR "-1"
+set_global_assignment -name POWER_EXT_SUPPLY_VOLTAGE_TO_REGULATOR 3.3V
+set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "NO HEAT SINK WITH STILL AIR"
+set_global_assignment -name TIMING_ANALYZER_MULTICORNER_ANALYSIS OFF
+set_global_assignment -name NUM_PARALLEL_PROCESSORS ALL
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to address[15]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to address[14]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to address[13]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to address[12]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to address[11]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to address[10]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to address[9]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to bank_address[7]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to bank_address[6]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to bank_address[5]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to bank_address[4]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to bank_address[3]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to bank_address[2]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to io_exp_n
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to io_xia_n
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to io_aia_n
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to io_via1_n
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to io_sia_n
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to io_via2_n
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to bank_address[1]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to irq_n
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to bank_address[0]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to phi2
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to d[7]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to d[6]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to d[5]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to d[4]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to d[3]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to d[2]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to d[1]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to d[0]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to dba[7]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to dba[6]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to dba[5]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to dba[4]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to dba[3]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to dba[2]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to dba[1]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to dba[0]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to address[8]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to address[7]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to address[6]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to address[5]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to address[4]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to address[3]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to address[2]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to address[1]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to address[0]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to irq_aia_n
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to irq_exp_n
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to irq_sia_n
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to irq_via1_n
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to irq_via2_n
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to irq_xia_n
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to read_write
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to reset_n
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to vpa
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to vda
+set_global_assignment -name VERILOG_FILE irq_aggregator.v
+set_global_assignment -name VERILOG_FILE hermes.v
+set_global_assignment -name SDC_FILE hermes.sdc
+set_global_assignment -name VERILOG_FILE address_decoder.v
+set_global_assignment -name AUTO_RESTART_CONFIGURATION OFF
+set_global_assignment -name ENABLE_OCT_DONE OFF
+set_global_assignment -name ENABLE_CONFIGURATION_PINS OFF
+set_global_assignment -name ENABLE_BOOT_SEL_PIN OFF
+set_global_assignment -name USE_CONFIGURATION_DEVICE ON
+set_global_assignment -name RESERVE_ALL_UNUSED_PINS "AS INPUT TRI-STATED"
+set_global_assignment -name RESERVE_ALL_UNUSED_PINS_NO_OUTPUT_GND "AS INPUT TRI-STATED"
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to read_n
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to write_n
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to valid_address
+set_location_assignment PIN_70 -to dba[7]
+set_location_assignment PIN_85 -to dba[6]
+set_location_assignment PIN_74 -to dba[5]
+set_location_assignment PIN_83 -to dba[4]
+set_location_assignment PIN_89 -to dba[3]
+set_location_assignment PIN_95 -to dba[2]
+set_location_assignment PIN_86 -to dba[1]
+set_location_assignment PIN_92 -to dba[0]
+set_location_assignment PIN_84 -to vpa
+set_location_assignment PIN_43 -to vda
+set_location_assignment PIN_77 -to reset_n
+set_location_assignment PIN_66 -to read_write
+set_location_assignment PIN_14 -to phi2
+set_location_assignment PIN_52 -to io_sia_n
+set_location_assignment PIN_76 -to bank_address[0]
+set_location_assignment PIN_87 -to bank_address[1]
+set_location_assignment PIN_36 -to bank_address[2]
+set_location_assignment PIN_16 -to address[0]
+set_location_assignment PIN_82 -to address[1]
+set_location_assignment PIN_27 -to address[2]
+set_location_assignment PIN_68 -to address[3]
+set_location_assignment PIN_53 -to address[4]
+set_location_assignment PIN_49 -to address[5]
+set_location_assignment PIN_56 -to address[6]
+set_location_assignment PIN_58 -to address[7]
+set_location_assignment PIN_38 -to address[8]
+set_location_assignment PIN_33 -to address[9]
+set_location_assignment PIN_34 -to address[10]
+set_location_assignment PIN_37 -to address[11]
+set_location_assignment PIN_28 -to address[12]
+set_location_assignment PIN_20 -to address[13]
+set_location_assignment PIN_30 -to address[14]
+set_location_assignment PIN_35 -to address[15]
+set_location_assignment PIN_15 -to ram_n[0]
+set_location_assignment PIN_48 -to ram_n[1]
+set_location_assignment PIN_72 -to d[7]
+set_location_assignment PIN_96 -to d[6]
+set_location_assignment PIN_73 -to d[5]
+set_location_assignment PIN_91 -to d[4]
+set_location_assignment PIN_90 -to d[3]
+set_location_assignment PIN_5 -to d[2]
+set_location_assignment PIN_88 -to d[1]
+set_location_assignment PIN_97 -to d[0]
+set_location_assignment PIN_55 -to ram_n[3]
+set_location_assignment PIN_69 -to ram_n[2]
+set_location_assignment PIN_99 -to write_n
+set_location_assignment PIN_78 -to read_n

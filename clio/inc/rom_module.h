@@ -42,6 +42,11 @@ void rom_init();
 void rom_tasks();
 
 static inline void rom_reset() {
+    REGISTER_CLEAR_FLAG(REG_ADDR_SCR, SCR_ROM_COMPLETE);
+    REGISTER_CLEAR_FLAG(REG_ADDR_SCR, SCR_ROM_DATA_READY);
+}
+
+static inline void rom_read_reset() {
     REGISTER_CLEAR_FLAG(REG_ADDR_SCR,SCR_ROM_DATA_READY);
     rom_state = rom_state_reset;
 }

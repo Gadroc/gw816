@@ -25,6 +25,11 @@
 #ifndef CLIO_LED_MODULE_H
 #define CLIO_LED_MODULE_H
 
+#define LED_STATE_OFF  0x0
+#define LED_STATE_ON   0x1
+#define LED_STATE_SLOW 0x2
+#define LED_STATE_FAST 0x3
+
 #define SCR_SIA_LED_MASK   (0b00011000)
 
 extern volatile uint8_t led_state;
@@ -33,6 +38,13 @@ extern volatile bool led_dirty;
 void led_init();
 
 void led_tasks();
+
+static inline void led_reset() {
+    led_state = LED_STATE_OFF;
+    led_dirty = false;
+    gpio_put(SIA_LED_PIN, false);
+    gpio_put(SYS_LED_PIN, false);
+}
 
 static inline void led_set(uint8_t state) {
     if (state != led_state) {
