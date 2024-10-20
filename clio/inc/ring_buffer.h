@@ -78,10 +78,12 @@ static inline uint8_t ring_buffer_get_byte(volatile struct ring_buffer *buffer) 
  * Puts a byte into the ring buffer.  WARNING must check to see if buffer is full!
  *
  * @param buffer
+ * @return ture if buffer is full
  */
-static inline void ring_buffer_put_byte(volatile struct ring_buffer* buffer, uint8_t value) {
+static inline bool ring_buffer_put_byte(volatile struct ring_buffer* buffer, uint8_t value) {
     buffer->data[buffer->end] = value;
-    buffer->end = (buffer->end +1) % RING_BUFFER_SIZE;
+    buffer->end = (buffer->end + 1) % RING_BUFFER_SIZE;
+    return ring_buffer_is_full(buffer);
 }
 
 #endif //CLIO_RING_BUFFER_H

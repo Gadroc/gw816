@@ -26,20 +26,15 @@
 #define CLIO_CONSOLE_MODULE_H
 
 #include <pico/stdlib.h>
+#include "config.h"
 #include "ring_buffer.h"
 #include "reg_module.h"
 
-#define SSR_CONSOLE_TX_READY (0b00000001)
-#define SSR_CONSOLE_RX_READY (0b00000010)
-#define SSR_DATA_TX_READY    (0b00000100)
-#define SSR_DATA_RX_READY    (0b00001000)
-
+#define ISR_CONSOLE_TX_READY (0b00000001)
+#define ISR_CONSOLE_RX_READY (0b00000010)
 
 extern struct ring_buffer console_uart_rx_buffer;
 extern struct ring_buffer console_uart_tx_buffer;
-
-extern struct ring_buffer data_uart_rx_buffer;
-extern struct ring_buffer data_uart_tx_buffer;
 
 void serial_init();
 
@@ -48,41 +43,20 @@ void serial_tasks();
 static inline void serial_reset() {
     ring_buffer_init(&console_uart_rx_buffer);
     ring_buffer_init(&console_uart_tx_buffer);
-    ring_buffer_init(&data_uart_rx_buffer);
-    ring_buffer_init(&data_uart_tx_buffer);
 
-    REGISTER_SET_FLAG(REG_ADDR_ISR, SSR_CONSOLE_TX_READY);
-    REGISTER_CLEAR_FLAG(REG_ADDR_ISR, SSR_CONSOLE_RX_READY);
-    REGISTER_SET_FLAG(REG_ADDR_ISR, SSR_DATA_TX_READY);
-    REGISTER_CLEAR_FLAG(REG_ADDR_ISR, SSR_DATA_RX_READY);
+    REGISTER_SET_FLAG(REG_ADDR_ISR, ISR_CONSOLE_TX_READY);
+    REGISTER_CLEAR_FLAG(REG_ADDR_ISR, ISR_CONSOLE_RX_READY);
 }
+
 
 #define SERIAL_TX_BYTE(buffer, tx_bit, data)  { \
-    if (!ring_buffer_is_full(&buffer)) {        \
-        ring_buffer_put_byte(&buffer, data);    \
-        if (ring_buffer_is_full(&buffer)) {     \
-            REGISTER_CLEAR_FLAG(REG_ADDR_ISR, tx_bit); \
-        }                                       \
-    }                                           \
+    if (ring_buffer_is_full(&buffer) || ring_buffer_put_byte(&buffer, data)) { \
+        REGISTER_CLEAR_FLAG(REG_ADDR_ISR, tx_bit);                             \
+    } \
 }
 
-#define SERIAL_NEXT_BYTE(buffer, rx_bit, data_reg_addr) { \
-    if (ring_buffer_is_empty(&buffer)) {                            \
-        REGISTER(data_reg_addr) = 0x00;                             \
-        REGISTER_CLEAR_FLAG(REG_ADDR_ISR, rx_bit);                  \
-    } else {                                                        \
-        REGISTER(data_reg_addr) = ring_buffer_get_byte(&buffer);    \
-        REGISTER_SET_FLAG(REG_ADDR_ISR, rx_bit);                    \
-    }                                                               \
-}
-
-static inline void serial_update_flags() {
-    if (!ring_buffer_is_full(&console_uart_tx_buffer)) {
-        REGISTER_SET_FLAG(REG_ADDR_ISR, SSR_CONSOLE_TX_READY);
-    }
-    if (!ring_buffer_is_empty(&console_uart_rx_buffer)) {
-        REGISTER_SET_FLAG(REG_ADDR_ISR, SSR_CONSOLE_RX_READY);
-    }
+#define SERIAL_NEXT_BYTE(buffer, rx_bit) { \
+    REGISTER_CLEAR_FLAG(REG_ADDR_ISR, rx_bit); \
 }
 
 #endif //CLIO_CONSOLE_MODULE_H

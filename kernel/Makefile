@@ -5,21 +5,21 @@ ASFLAGS = --cpu $(CPU) --create-dep $(<:.s=.d) --list-bytes 0 --include-dir inc
 LD = ld65
 LDFLAGS = -m $@.map -Ln $@.debug
 
-SOURCES = src/bootstrap/bootstrap.s src/bootstrap/hardware_vectors.s \
-		  src/kernel/kernel.s src/kernel/scratch.s src/kernel/post.s \
-		  src/kernel/memory.s src/tests/memory_tests.s \
-		  src/monitor/display.s
-PROGRAM = rom
+SOURCES = src/kernel/init.s src/kernel/registers.s src/kernel/irq.s \
+		  src/kernel/debug.s src/kernel/monitor.s
 
 .SUFFIXES:
 .PHONY: all clean
-all: $(PROGRAM) install
+all: romstrap kernel install
 
 %.o : %.s
 	$(AS) $(ASFLAGS) -l $*.lst -o $@ $<
 
-$(PROGRAM): $(SOURCES:.s=.o)
-	$(LD) $(LDFLAGS) -C gw816_kernel.cfg -o $@ $^
+romstrap: src/romstrap/romstrap.o
+	$(LD) $(LDFLAGS) -C romstrap.cfg -o $@.bin $^
+
+kernel: $(SOURCES:.s=.o)
+	$(LD) $(LDFLAGS) -C kernel.cfg -o $@.bin $^
 
 install:
 	cp *.bin ../clio/

@@ -28,18 +28,23 @@
 #include <pico/stdlib.h>
 
 #define REG_ADDR_SCR    0x00
-#define REG_ADDR_RA_LO  0x01
-#define REG_ADDR_RA_HI  0x02
-#define REG_ADDR_RA_BA  0x03
-#define REG_ADDR_RDR    0x04
-#define REG_ADDR_ISR    0x05
-#define REG_ADDR_ICR    0x06
-#define REG_ADDR_CDR    0x07
-#define REG_ADDR_SDR    0x08
-#define REG_ADDR_BOOTLOADER 0x20
-#define REG_ADDR_VECTORS    0x60
+#define REG_ADDR_RDR    0x01
+#define REG_ADDR_ISR    0x02
+#define REG_ADDR_ICR    0x03
+#define REG_ADDR_CDR    0x04
+#define REG_ADDR_KDR    0x05
+#define REG_ADDR_MDR    0x06
+#define REG_ADDR_TCR    0x07
+#define REG_ADDR_TCL    0x08
+#define REG_ADDR_TCH    0x09
+#define REG_ADDR_MCR    0x0A
 
-extern volatile uint8_t register_data[0x80];
+#define REG_ADDR_BOOTLOADER 0x20
+#define REG_ADDR_VECTORS    0x20
+
+#define REGISTER_COUNT 0x40
+
+extern volatile uint8_t register_data[REGISTER_COUNT];
 
 void registers_init();
 

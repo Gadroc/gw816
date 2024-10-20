@@ -26,36 +26,31 @@
 #define CLIO_ROM_MODULE_H
 
 #include "reg_module.h"
+#include <memory.h>
 
-#define SCR_ROM_RESET       (0b00100000)
-#define SCR_ROM_DATA_READY  (0b01000000)
 #define SCR_ROM_COMPLETE    (0b10000000)
 
-enum rom_register_states {
-    rom_state_unknown, rom_state_reset, rom_state_ready, rom_state_next
-};
+extern const uint8_t romstrap_bin[];
+extern unsigned int romstrap_bin_len;
 
-extern volatile enum rom_register_states rom_state;
+extern const uint8_t kernel_bin[];
+extern unsigned int kernel_bin_len;
+extern uint32_t rom_index;
 
 void rom_init();
 
-void rom_tasks();
+static inline void rom_next_byte() {
+    REGISTER(REG_ADDR_RDR) = kernel_bin[rom_index++];
+    if (rom_index == kernel_bin_len) {
+        REGISTER_SET_FLAG(REG_ADDR_SCR, SCR_ROM_COMPLETE);
+    }
+}
 
 static inline void rom_reset() {
+    memcpy(&REGISTER(REG_ADDR_BOOTLOADER), &romstrap_bin, romstrap_bin_len);
     REGISTER_CLEAR_FLAG(REG_ADDR_SCR, SCR_ROM_COMPLETE);
-    REGISTER_CLEAR_FLAG(REG_ADDR_SCR, SCR_ROM_DATA_READY);
-}
-
-static inline void rom_read_reset() {
-    REGISTER_CLEAR_FLAG(REG_ADDR_SCR,SCR_ROM_DATA_READY);
-    rom_state = rom_state_reset;
-}
-
-static inline void rom_next_byte() {
-    REGISTER_CLEAR_FLAG(REG_ADDR_SCR, SCR_ROM_DATA_READY);
-    if (rom_state == rom_state_ready) {
-        rom_state = rom_state_next;
-    }
+    rom_index = 0;
+    rom_next_byte();
 }
 
 #endif //CLIO_ROM_MODULE_H

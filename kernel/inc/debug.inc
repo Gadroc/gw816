@@ -1,5 +1,5 @@
 ;
-; Copyright 2023 Craig Courtney
+; Copyright 2024 Craig Courtney
 ;
 ; Redistribution and use in source and binary forms, with or without
 ; modification, are permitted provided that the following conditions are met:
@@ -28,28 +28,5 @@
 ; POSSIBILITY OF SUCH DAMAGE.
 ;
 
-;===============================================================================
-; Kernal Scracth Data
-;
-; Scratch structures must be mutually exclusive.  Meaning one call through the
-; kernel can only use one scratch area, if it calls into another kernel function
-; which uses a scratch area conflicts can arise.
-;===============================================================================
-
-; Scratch area used for allocating / deallocating memory 
-.struct memory_alloc_scratch
-    alloc_block     .word 2
-    prev_block      .word 2
-    next_block      .word 2
-    alloc_remaining .word 2
-    temp_block      .word 2
-    adj_size        .word 2
-    alloc_offset    .word 1 
-.endstruct
-
-.struct memory_calc_scratch
-    free_mem        .word 2
-    contiguous_mem  .word 2
-.endstruct
-
-.globalzp scratch
+.global DEBUG_INIT, DEBUG_PUT_CHAR, DEBUG_GET_CHAR
+.global DEBUG_SPRINT, DEBUG_HEX_WORD, DEBUG_HEX_BYTE

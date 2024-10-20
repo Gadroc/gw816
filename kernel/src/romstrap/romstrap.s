@@ -1,5 +1,5 @@
 ;
-; Copyright 2023 Craig Courtney
+; Copyright 2024 Craig Courtney
 ;
 ; Redistribution and use in source and binary forms, with or without
 ; modification, are permitted provided that the following conditions are met:
@@ -29,51 +29,31 @@
 ;
 
 ;===============================================================================
-; BOOTSTRAP
 ; Since Clio does not have enough address lines to fully emulate ROM, we have
-; a small section of bootstrap ROM which will sequentially read BIOS code
-; via SCR, RTA, and RDR registers and copy it into RAM.  It will then tranfser
-; control to the BIOS Init Vector.
+; a small section of bootstrap ROM which will sequentially read ROM code
+; via RDR register and copies it into RAM.  It will then tranfser
+; control to the Kenerl.  The boostrap code lives in the address space
+; of the native interrupt vector tabel.  The kernel code is responsbile for
+; setting interrupt vectors during initialization.
 ;===============================================================================
 
 .include "gw816.inc"
-.include "bootstrap.inc"
-.include "kernel.inc"
 
-.segment "BOOTSTRAP"
-Bootstrap:
-        SET_NATIVE_MODE
-        SET_MX_16BIT
-        lda #$ff00              ; User direct page to access Clio ROM data
-        tcd                     ; so we can use DBR to store data anywhere
-        SET_M_8BIT              ; without having to reset DBR to read next byte
+kernel_start = $1000
 
-        ; Reset ROM reading and set LED to slow blink
-        SET_REGISTER <REG_SCR, SCR_LED_SMASK^SCR_ROM_RESET, SCR_LED_SLOW|SCR_ROM_RESET
+.code
+bootstrap:
+                SET_NATIVE_MODE
+                SET_X_16BIT
+                ldx #kernel_start
+loop:           lda SMC_RDR
+                sta a:$0000,x
+                inx
+                lda SMC_SCR
+                bit #SCR_ROM_COMPLETE
+                beq loop
+                jmp kernel_start
 
-@rom_copy_loop:
-        lda <REG_SCR            ; Get current status
-        bit #SCR_ROM_READY      ; Check to see if a ROM byte is ready
-        beq @rom_copy_loop
-        bit #SCR_ROM_COMPLETE   ; Check to see if the ROM is at end of file
-        beq @copy_byte
-        SET_MX_8BIT             ; We are done reset MX bits and jump to BIOS
-        jmp KernelInit
-
-@copy_byte:
-        lda <REG_RBA            ; Set data bank for byte copy
-        pha
-        plb
-
-        ldx <REG_RTA            ; Load target address
-        lda <REG_RDR            ; Load current ROM byte
-        sta a:$0000,x           ; Store byte at it's target
-        cmp a:$0000,x           ; Now verify it's written correctly
-        beq @rom_copy_loop
-
-        ; We had a memory read/write failure so fast flash it is
-        SET_REGISTER <REG_SCR, SCR_LED_SMASK, SCR_LED_OFF
-@rom_fail_loop:
-        bra @rom_fail_loop
-
-
+.segment "VECTORS"
+    .word   bootstrap
+    .word   $0000

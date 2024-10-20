@@ -26,30 +26,37 @@
 
 #include <hardware/pio.h>
 
-#define START_FREQ 4
 //#define DISPLAY_REQUEST
-#define DISPLAY_MAX 1000
+#define DISPLAY_MAX 60
 #define USE_DMA
 
 #define BUS_PIN_BASE        0
 #define BUS_RW_PIN          (BUS_PIN_BASE)
 #define BUS_ADDR_BASE_PIN   (BUS_PIN_BASE + 1)
-#define BUS_DATA_PIN_BASE   (BUS_PIN_BASE + 8)
-#define SPI_MISO_PIN        16
-#define SPI_SDCARD_PIN      17
-#define SPI_SCLK_PIN        18
-#define SPI_MOSI_PIN        19
-#define SPI_RTC_PIN         20
-#define SYS_LED_PIN         21
-#define IRQ_PIN             22
-#define SIA_LED_PIN         25
-#define BUS_RESET_PIN       26
-#define BUS_CS_PIN          27
-#define BUS_CLOCK_PIN       28
+#define BUS_DATA_PIN_BASE   (BUS_PIN_BASE + 7)
+#define BUS_RESET_PIN       27
+#define BUS_CS_PIN          28
+#define BUS_CLOCK_PIN       29
 
-#define BUS_PIO         pio0
-#define BUS_CLOCK_SM    0
-#define BUS_CONTROL_SM  1
-#define BUS_READ_SM     2
+#define LED_PIN             25
+#define SW_PIN              24
+
+#define IRQ_PIN_PS2         22
+#define IRQ_PIN_TIMER       23
+#define IRQ_PIN_UART        15
+
+#define RESET_REQ           26
+
+#define UART_TX             16
+#define UART_RX             17
+
+#define PS2_KBD_CLK         18
+#define PS2_KBD_DAT         19
+#define PS2_MSE_CLK         20
+#define PS2_MSE_DAT         21
+
+#define BUS_PIO             pio0
+#define BUS_CONTROL_SM      0
+#define BUS_READ_SM         1
 
 #endif //CLIO_PINS_H

@@ -26,7 +26,6 @@
 #include <pico/multicore.h>
 
 #include <stdio.h>
-#include "cpu_module.h"
 #include "reg_module.h"
 #include "bus_module.h"
 #include "rom_module.h"
@@ -36,6 +35,7 @@
 static union BUS_CONTROL_EVENT request;
 
 static uint16_t divider_int;
+static bool _reset = true;
 
 #ifdef DISPLAY_REQUEST
 uint16_t display_count = 0;
@@ -53,10 +53,11 @@ _Noreturn static __attribute__((optimize("O1")))  void bus_loop() {
 
 #ifndef USE_DMA
         if (BUS_READ_AVAILABLE) {
-            uint8_t address = NEXT_BUS_READ_ADDRESS;
+            uint32_t raw = BUS_PIO->rxf[BUS_READ_SM];
+            uint8_t address = raw & 0x3F;
             pio_sm_put(BUS_PIO, BUS_READ_SM, REGISTER(address));
             if (display_count < DISPLAY_MAX) {
-                printf("R A:%04x D:%02x\n", address + 0xFF80, REGISTER(address));
+                printf("R A:%04x D:%02x %08lx %08x\n", address + 0xFFC0, REGISTER(address), raw, (uintptr_t)register_data);
                 display_count++;
             }
         }
@@ -66,20 +67,16 @@ _Noreturn static __attribute__((optimize("O1")))  void bus_loop() {
             request.raw = NEXT_BUS_REQUEST;
 
 #ifdef DISPLAY_REQUEST
-//            if (display_count < DISPLAY_MAX) {
-                 printf("%1c A:%04x D:%02x RAW:%08lx\n", BUS_EVENT_IS_READ(request) ? 'R' : 'W', BUS_EVENT_ADDR(request) + 0xFF80,
+            if (display_count < DISPLAY_MAX) {
+                 printf("%1s A:%04x D:%02x RAW:%08lx\n", BUS_EVENT_IS_READ(request) ? "R" : "W", BUS_EVENT_ADDR(request) + 0xFFC0,
                        BUS_EVENT_IS_READ(request) ? REGISTER(BUS_EVENT_ADDR(request)) : request.data, request.raw);
-//                display_count++;
-//            }
+                display_count++;
+            }
 #endif
 
             switch (request.address) {
                 case BUS_EVENT_WRITE(REG_ADDR_SCR):
-                    led_set(request.data & SCR_SIA_LED_MASK);
-                    //cpu_set_freq(request.data & SCR_CPU_SPEED_MASK);
-                    if (request.data & SCR_ROM_RESET) {
-                        rom_read_reset();
-                    }
+                    led_set(request.data & SCR_LED_MASK);
                     break;
 
                 case BUS_EVENT_READ(REG_ADDR_RDR):
@@ -87,16 +84,16 @@ _Noreturn static __attribute__((optimize("O1")))  void bus_loop() {
                     break;
 
                 case BUS_EVENT_WRITE(REG_ADDR_CDR):
-                    SERIAL_TX_BYTE(console_uart_tx_buffer, SSR_CONSOLE_TX_READY, request.data)
+                    SERIAL_TX_BYTE(console_uart_tx_buffer, ISR_CONSOLE_TX_READY, request.data)
                     break;
 
-            case BUS_EVENT_READ(REG_ADDR_CDR):
-                    SERIAL_NEXT_BYTE(console_uart_rx_buffer, SSR_CONSOLE_RX_READY, REG_ADDR_CDR)
+                case BUS_EVENT_READ(REG_ADDR_CDR):
+                    SERIAL_NEXT_BYTE(console_uart_rx_buffer, ISR_CONSOLE_RX_READY)
                     break;
+            }
 
-                case BUS_EVENT_READ(REG_ADDR_ISR):
-                    serial_update_flags();
-                    break;
+            if (!BUS_EVENT_IS_READ(request) &&  BUS_EVENT_ADDR(request) >= REG_ADDR_VECTORS) {
+                REGISTER(BUS_EVENT_ADDR(request)) = request.data;
             }
         }
     }
@@ -109,8 +106,7 @@ _Noreturn static __attribute__((optimize("O1")))  void bus_loop() {
 _Noreturn void peripheral_loop() {
     while (true) {
         if (gpio_get(BUS_RESET_PIN)) {
-            // Manage ROM Load
-            rom_tasks();
+            _reset = false;
 
             // Check UART Buffers
             serial_tasks();
@@ -119,47 +115,56 @@ _Noreturn void peripheral_loop() {
             led_tasks();
 
         } else {
-            rom_reset();
-            serial_reset();
-            led_reset();
+            if (!_reset) {
+#ifdef DISPLAY_REQUEST
+                display_count = 0;
+                printf("\n** RESET **\n");
+#endif
+
+                rom_reset();
+                serial_reset();
+                led_reset();
+
+                _reset = true;
+            }
         }
     }
 }
 
 int main() {
 
+    sleep_ms(150);
+
     // We need to "overclock" the RP2040 in order to keep up over 5Mhz or so
     // target system is 8Mhz
     set_sys_clock_khz(256000,true);
 
-    // Setup Power Supply
-    gpio_init(23);
-    gpio_set_dir(23, true);
-    gpio_put(23, true);
+    // Pull down reset request during startup
+    gpio_init(RESET_REQ);
+    gpio_set_dir(RESET_REQ, true);
+    gpio_set_mask(1<<RESET_REQ);
 
     // Setup RESET sense pin
     gpio_init(BUS_RESET_PIN);
     gpio_set_dir(BUS_RESET_PIN, false);
 
-    // Initialize console uart
-    // TODO If vbus is connected then we should wait for CDC serial on console prot before releasing cpu
-    // TODO If vbus is connected and CDC console drops we should put cpu in reset
+    // Initialize serial ports
     serial_init();
 
     // Initialize registers
     registers_init();
 
     // Initialize the address and data bus programs
-    bus_init(divider_int);
-
-    // Initialize Reset and Hold CPU in reset
-    //cpu_init(START_FREQ);
+    bus_init();
 
     // Initialize rom
     rom_init();
 
     // Initialize led control
     led_init();
+
+    // Release reset so CPU can start
+    gpio_clr_mask(1<<RESET_REQ);
 
     // Start the bus processing loop
     multicore_launch_core1(bus_loop);

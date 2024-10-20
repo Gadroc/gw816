@@ -31,7 +31,7 @@
 #define LED_INTERVAL_FAST_MS 100
 #define LED_INTERVAL_SLOW_MS 500
 
-#define LED_MASK ((1<<SIA_LED_PIN) | (1<<SYS_LED_PIN))
+#define LED_MASK (1<<LED_PIN)
 
 volatile uint8_t led_state = LED_STATE_OFF;
 volatile bool led_dirty = false;
@@ -41,11 +41,8 @@ static absolute_time_t next_toggle;
 static uint64_t        toggle_interval;
 
 void led_init() {
-    gpio_init(SIA_LED_PIN);
-    gpio_init(SYS_LED_PIN);
-    gpio_set_dir(SIA_LED_PIN, true);
-    gpio_set_dir(SYS_LED_PIN, true);
-
+    gpio_init(LED_PIN);
+    gpio_set_dir(LED_PIN, true);
     led_reset();
 }
 
@@ -78,7 +75,7 @@ void led_tasks() {
             default:
                 break;
         }
-        REGISTER_SET_MASKED(REG_ADDR_SCR, (led_state << 3), SCR_SIA_LED_MASK);
+        REGISTER_SET_MASKED(REG_ADDR_SCR, (led_state << 3), SCR_LED_MASK);
     }
 
     if (led_state > LED_STATE_ON) {

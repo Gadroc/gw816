@@ -24,10 +24,10 @@
 
 #include "reg_module.h"
 
-volatile uint8_t __attribute__ ((aligned (0x80))) register_data[0x80];
+volatile uint8_t __attribute__ ((aligned (REGISTER_COUNT))) register_data[REGISTER_COUNT];
 
 void registers_init() {
-    for(int i=0; i<0x80; i++) {
+    for(int i=0; i<REGISTER_COUNT; i++) {
         register_data[i] = 0x0;
     }
 }

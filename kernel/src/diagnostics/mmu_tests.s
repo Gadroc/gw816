@@ -1,5 +1,5 @@
 ;
-; Copyright 2023 Craig Courtney
+; Copyright 2024 Craig Courtney
 ;
 ; Redistribution and use in source and binary forms, with or without
 ; modification, are permitted provided that the following conditions are met:
@@ -29,15 +29,12 @@
 ;
 
 ;===============================================================================
-; Kernal Scracth Data
+; Test Cases For Atlas MMU
 ;===============================================================================
 
-.include "kernel-scratch.inc"
+.code
 
-.union kernel_scratch
-    .tag memory_alloc_scratch
-    .tag memory_calc_scratch
-.endunion
+.proc PostMmuTests
 
-.zeropage
-scratch: .tag kernel_scratch  
+    rts
+.endproc

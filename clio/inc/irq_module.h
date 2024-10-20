@@ -25,4 +25,13 @@
 #ifndef CLIO_IRQ_MODULE_H
 #define CLIO_IRQ_MODULE_H
 
+//#define IRQ_UART1_MASK (1<<IRQ_PIN_UART1)
+//#define IRQ_UART2_MASK (1<<IRQ_PIN_UART2)
+//
+//gpio_init(IRQ_PIN_UART1);
+//gpio_set_dir(IRQ_PIN_UART1, true);
+//gpio_init(IRQ_PIN_UART2);
+//gpio_set_dir(IRQ_PIN_UART2, true);
+
+
 #endif //CLIO_IRQ_MODULE_H

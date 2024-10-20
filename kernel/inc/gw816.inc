@@ -1,5 +1,5 @@
 ;
-; Copyright 2023 Craig Courtney
+; Copyright 2024 Craig Courtney
 ;
 ; Redistribution and use in source and binary forms, with or without
 ; modification, are permitted provided that the following conditions are met:
@@ -28,88 +28,9 @@
 ; POSSIBILITY OF SUCH DAMAGE.
 ;
 
-;
-; Clio Regsiter Map
-;
-REG_SCR = $FF80 ; System Control Register
-REG_RTA = $FF81 ; ROM Target Address
-REG_RBA = $FF83 ; ROM Bank Address
-REG_RDR = $FF84 ; Rom Data Regiseter
-REG_ISR = $FF85 ; Interrupt Status Register
-REG_ICR = $FF86 ; Interrupt Control Register
-REG_CDR = $FF87 ; Console Data Register
-REG_SDR = $FF88 ; Serial Data Register
-REG_SPC = $FF89 ; SPI Control Register
-REG_SPD = $FF8A ; SPI Data Register
-
-;
-; SCR Flags
-;
-SCR_CPU_FMASK   = %00000111
-SCR_CPU_SMASK   = %11111000
-SCR_CPU_10KHZ   = %00000000
-SCR_CPU_1000KHZ = %00000001
-SCR_CPU_500KHZ  = %00000010
-SCR_CPU_1MHZ    = %00000011
-SCR_CPU_2MHZ    = %00000100
-SCR_CPU_4MHZ    = %00000101
-SCR_CPU_6MHZ    = %00000110
-SCR_CPU_8MHZ    = %00000111
-SCR_LED_FMASK   = %00011000
-SCR_LED_SMASK   = %11100111
-SCR_LED_OFF     = %00000000
-SCR_LED_ON      = %00001000
-SCR_LED_SLOW    = %00010000
-SCR_LED_FAST    = %00011000
-SCR_ROM_RESET   = %00100000
-SCR_ROM_READY   = %01000000
-SCR_ROM_COMPLETE= %10000000
-
-;
-; ISR Flags
-;
-ISR_CONSOLE_TX_RDY  = %00000001
-ISR_CONSOLE_RX_RDY  = %00000010
-ISR_SERIAL_TX_RDY   = %00000100
-ISR_SERIAL_RX_RDY   = %00001000
-ISR_SPI_TX_COMPLETE = %00010000
-ISR_SPI_BUSY        = %00100000
-
-
-;
-; BIOS COP Signatures
-;
-BIOS_CONSOLE_CLEARSCREEN  = 0
-BIOS_CONSOLE_SETCURSORPOS = 1
-BIOS_CONSOLE_SETATTRIBS   = 2
-BIOS_CONSOLE_PUTCHAR      = 3
-BIOS_CONSOLE_PUTSTRING    = 4
-BIOS_CONSOLE_GETCHAR      = 5
-BIOS_CONSOLE_READLINE     = 6
-
-
-;-------------------------------------------------------------------------------
-; Register Macros
-;-------------------------------------------------------------------------------
-.macro  SET_REGISTER register, mask, value
-.if .asize = 16
-        SET_M_8BIT
-        lda             register
-        and             #mask
-        ora             #value
-        sta             register
-        SET_M_16BIT
-.else
-        lda             register
-        and             #mask
-        ora             #value
-        sta             register
-.endif
-.endmacro
-
-;-------------------------------------------------------------------------------
+;===============================================================================
 ; CPU Mode Macros
-;-------------------------------------------------------------------------------
+;===============================================================================
 ; Switch CPU to Native Mode
 .macro SET_NATIVE_MODE
         clc
@@ -192,4 +113,137 @@ BIOS_CONSOLE_READLINE     = 6
 ; Set Index registers to 8 bit mode
 .macro EXP_X_8BIT
         .i8
+.endmacro
+
+;===============================================================================
+; Register Manipulation Macros
+;===============================================================================
+.macro  SET_REGISTER register, mask, value
+.if .asize = 16
+        SET_M_8BIT
+        lda             register
+        and             #mask
+        ora             #value
+        sta             register
+        SET_M_16BIT
+.else
+        lda             register
+        and             #mask
+        ora             #value
+        sta             register
+.endif
+.endmacro
+
+;===============================================================================
+; 65C816 Interrupt Vector Addresses
+;===============================================================================
+VEC_COP             = $00FFE4
+VEC_BRK             = $00FFE6
+VEC_ABORTB          = $00FFE8
+VEC_NMIB            = $00FFEA
+VEC_IRQB            = $00FFEE
+VEC_EMU_COP         = $00FFF4
+VEC_EMU_ABORTB      = $00FFF8
+VEC_EMU_NMIB        = $00FFFA
+VEC_EMU_RESETB      = $00FFFC
+VEC_EMU_IRQB_BRK    = $00FFFE
+
+;===============================================================================
+; SMC (Clio)
+;===============================================================================
+; Register Addresses
+;-------------------------------------------------------------------------------
+SMC_SCR  = $00FFC0 ; System Control Register
+SMC_RDR  = $00FFC1 ; Rom Data Regiseter
+SMC_ISR  = $00FFC2 ; Interrupt Status Register
+SMC_ICR  = $00FFC3 ; Interrupt Control Register
+SMC_CDR  = $00FFC4 ; Console Data Register
+SMC_KDR  = $00FFC5 ; Keyboard Data Register
+SMC_MDR  = $00FFC6 ; Mouse Data Register
+SMC_TCR  = $00FFC7 ; Timer Control Register
+SMC_TMC  = $00FFC8 ; Timer Counter
+SMC_TMCL = $00FFC8 ; Timer Counter Low Register
+SMC_TMCH = $00FFC9 ; Timer Coutner High Register
+SMC_MCR  = $00FFCA ; Millisecond Clock Register (32-bit ms since reset)
+;-------------------------------------------------------------------------------
+; SCR Flags
+;-------------------------------------------------------------------------------
+SCR_ROM_RESET       = %01000000
+SCR_ROM_COMPLETE    = %10000000
+SCR_LED_MASK        = %00000011
+SCR_LED_SMASK       = %11111100
+SCR_LED_OFF         = %00000000
+SCR_LED_ON          = %00000001
+SCR_LED_SLOW        = %00000010
+SCR_LED_FAST        = %00000011
+;-------------------------------------------------------------------------------
+; ISR Flags
+;-------------------------------------------------------------------------------
+ISR_CONSOLE_TX_RDY  = %00000001
+ISR_CONSOLE_RX_RDY  = %00000010
+ISR_KEYBOARD_TX_RDY = %00000100
+ISR_KEYBOARD_RX_RDY = %00001000
+ISR_MOUSE_RX_RDY    = %00010000
+
+;===============================================================================
+; MMU (Atlas) Registers
+;===============================================================================
+; Register Addresses
+;-------------------------------------------------------------------------------
+MMU_AASID       = $00FFA8   ; Current Active Address Space ID (ASID)
+MMU_MMC         = $00FFA9   ; Memory Mapping Control Register
+MMU_S0_OFFSET   = $00FFAA   ; Segment Zero Offset
+MMU_S0_OFFSET_L = $00FFAA   ; Page Zero Offset Low Byte
+MMU_S0_OFFSET_H = $00FFAB   ; Page Zero Offset High Byte
+MMU_ACL_SEG     = $00FFAC   ; ACL Segment
+MMU_ACL_SEG_L   = $00FFAC   ; ACL Segment Low Byte
+MMU_ACL_SEG_H   = $00FFAD   ; ACL Segment High Byte
+MMU_ACL         = $00FFAE   ; ACL
+MMU_ACL_ASID    = $00FFAE   ; ACL - ASID
+MMU_ACL_FLAGS   = $00FFAF   ; ACL - Flags
+;-------------------------------------------------------------------------------
+; MMC Flags
+;-------------------------------------------------------------------------------
+MMC_VRAM_DISABLE    = %10000000   ; VRAM Disable Bit
+MMC_USER_MOD_EN     = %01000000   ; User Mode Enabled Bit
+MMC_ABORT_CODE_MASK = %00000111   ; Abort Code Mask
+;-------------------------------------------------------------------------------
+; ACL 16-Bit Access Flags
+;-------------------------------------------------------------------------------
+ACL_SYS_MASK   = %1111000000000000  ; System Flag Mask
+ACL_ALLOCATED  = %1000000000000000  ; System Flag Allocated Bit
+ACL_MODE_MASK  = %0000110000000000  ; Access Mode Read Mask
+ACL_MODE_SMASK = %1111001111111111  ; Access Mode Set Mask
+ACL_MODE_SUP   = %0000000000000000  ; Access Mode Supervisor Only
+ACL_MODE_USER  = %0000010000000000  ; Access Mode User Mode ASID
+ACL_MODE_GLOB  = %0000100000000000  ; Access Mode Global All ASIDs
+ACL_NO_EXEC    = %0000001000000000  ; No Execute Bit
+ACL_READ_ONLY  = %0000000100000000  ; Read Only Bit
+ACL_ASID_MASK  = %0000000011111111  ; ASID Read Mask
+ACL_ASID_SMASK = %1111111100000000  ; ASID Set Mask
+;-------------------------------------------------------------------------------
+; ACL 8-Bit Access Flags
+;-------------------------------------------------------------------------------
+ACL_FLAGS_SYS_MASK   = %11110000    ; System Flag Mask
+ACL_FLAGS_ALLOCATED  = %10000000    ; System Flag Allocated Bit
+ACL_FLAGS_MODE_MASK  = %00001100    ; Access Mode Mask
+ACL_FLAGS_MODE_SMASK = %11110011    ; Access Mode Set Mask
+ACL_FLAGS_MODE_SUP   = %00000000    ; Access Mode Supervisor Only
+ACL_FLAGS_MODE_USER  = %00000100    ; Access Mode User Mode ASID
+ACL_FLAGS_MODE_GLOB  = %00001000    ; Access Mode Global All ASIDs
+ACL_FLAGS_NO_EXEC    = %00000010    ; No Execute Bit
+ACL_FLAGS_READ_ONLY  = %00000001    ; Read Only Bit
+;-------------------------------------------------------------------------------
+; MMU Macos
+;-------------------------------------------------------------------------------
+; Fills a region of ACLs with the same ASID
+; Expects: Pm - 16-Bit, Px - 16-Bit
+; Inputs : C - ACL Register Continats (ASID+Flags), X - Start Segment
+; Params : length - Number of segments to fill
+.macro MMU_FILL_ACL length
+:       stx MMU_ACL_SEG
+        sta MMU_ACL
+        inx
+        cpx #length
+        bne :-
 .endmacro

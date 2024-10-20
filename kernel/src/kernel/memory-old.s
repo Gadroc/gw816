@@ -58,7 +58,7 @@ contiguous_mem := scratch+memory_calc_scratch::contiguous_mem
 .zeropage
 memory_first_block:    .word $0000, $0000  ; Pointer to first memory block
 
-.segment "KERNEL_CODE"
+.code
 EXP_MX_16BIT
 
 ;*******************************************************************************

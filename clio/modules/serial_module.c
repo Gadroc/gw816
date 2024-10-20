@@ -25,26 +25,36 @@
 #include <stdio.h>
 
 #include "serial_module.h"
+#include "reg_module.h"
 
 struct ring_buffer console_uart_rx_buffer;
 struct ring_buffer console_uart_tx_buffer;
-struct ring_buffer data_uart_rx_buffer;
-struct ring_buffer data_uart_tx_buffer;
 
-// TODO Convert to dual CDC direct instead of Pico STDIO over CDC
 void serial_init() {
-    stdio_init_all();
+    stdio_uart_init_full(uart0, 115200, UART_TX, UART_RX);
     serial_reset();
 }
 
-// TODO If CDC is not connected we need to throw away data and not block
-void serial_tasks() {
-    if (!ring_buffer_is_empty(&console_uart_tx_buffer)) {
+void serial_tasks()
+{
+    if (!ring_buffer_is_empty(&console_uart_tx_buffer))
+    {
         putchar(ring_buffer_get_byte(&console_uart_tx_buffer));
+    }
+    if (!ring_buffer_is_full(&console_uart_tx_buffer))
+    {
+        REGISTER_SET_FLAG(REG_ADDR_ISR, ISR_CONSOLE_TX_READY);
     }
 
     int usb_c = getchar_timeout_us(0);
-    if (usb_c != PICO_ERROR_TIMEOUT) {
+    if (usb_c != PICO_ERROR_TIMEOUT && !ring_buffer_is_full(&console_uart_rx_buffer))
+    {
         ring_buffer_put_byte(&console_uart_rx_buffer, usb_c);
+    }
+
+    if (!ring_buffer_is_empty(&console_uart_rx_buffer) && REGISTER_NOT_SET(REG_ADDR_ISR, ISR_CONSOLE_RX_READY))
+    {
+        REGISTER(REG_ADDR_CDR) = ring_buffer_get_byte(&console_uart_rx_buffer);
+        REGISTER_SET_FLAG(REG_ADDR_ISR, ISR_CONSOLE_RX_READY);
     }
 }

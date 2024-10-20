@@ -40,19 +40,19 @@ void bus_read_init(uint16_t divider_int, uint8_t divider_frac) {
     uint offset = pio_add_program(BUS_PIO, &bus_read_program);
     pio_sm_claim(BUS_PIO, BUS_READ_SM);
 
-    pio_sm_set_consecutive_pindirs(BUS_PIO, BUS_READ_SM, BUS_ADDR_BASE_PIN, 7, false);
+    pio_sm_set_consecutive_pindirs(BUS_PIO, BUS_READ_SM, BUS_ADDR_BASE_PIN, 6, false);
     pio_sm_set_consecutive_pindirs(BUS_PIO, BUS_READ_SM, BUS_DATA_PIN_BASE, 8, false);
 
     pio_sm_config config = bus_read_program_get_default_config(offset);
     sm_config_set_out_pins(&config, BUS_DATA_PIN_BASE, 8);
     sm_config_set_out_shift(&config, true, false, 8);
     sm_config_set_in_pins(&config, BUS_ADDR_BASE_PIN);
-    sm_config_set_in_shift(&config, false, true, 7);
+    sm_config_set_in_shift(&config, false, true, 6);
     sm_config_set_clkdiv_int_frac(&config, divider_int, divider_frac);
     pio_sm_init(BUS_PIO, BUS_READ_SM, offset, &config);
 
     // Pre-load the base address of the register data for DMA reads
-    pio_sm_put(BUS_PIO, BUS_READ_SM, (uintptr_t)register_data >> 7);
+    pio_sm_put(BUS_PIO, BUS_READ_SM, (uintptr_t)register_data >> 6);
     pio_sm_exec_wait_blocking(BUS_PIO, BUS_READ_SM, pio_encode_pull(false, true));
     pio_sm_exec_wait_blocking(BUS_PIO, BUS_READ_SM, pio_encode_mov(pio_y, pio_osr));
     pio_sm_exec_wait_blocking(BUS_PIO, BUS_READ_SM, pio_encode_mov(pio_isr, pio_y));

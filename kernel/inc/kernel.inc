@@ -1,5 +1,5 @@
 ;
-; Copyright 2023 Craig Courtney
+; Copyright 2024 Craig Courtney
 ;
 ; Redistribution and use in source and binary forms, with or without
 ; modification, are permitted provided that the following conditions are met:
@@ -28,148 +28,30 @@
 ; POSSIBILITY OF SUCH DAMAGE.
 ;
 
-;===============================================================================
-; Kernel
-;===============================================================================
-.global KernelInit
+;-------------------------------------------------------------------------------
+; Kernel Zeropage
+;-------------------------------------------------------------------------------
+.globalzp MR0, MR0L, MR0H
+.globalzp MR1, MR1L, MR1H
+.globalzp MR2, MR2L, MR2H
+.globalzp MR3, MR3L, MR3H
+.globalzp MR4, MR4L, MR4H
+.globalzp MR5, MR5L, MR5H
+.globalzp MR6, MR6L, MR6H
+.globalzp MR7, MR7L, MR7H
+
+.globalzp MAX_SEGMENT
 
 ;-------------------------------------------------------------------------------
-; KerenelCallReturn: Returns from kernel api call
+; IRQ Handlers
 ;-------------------------------------------------------------------------------
-.global KernelCallDispatcher, KerenelCallReturn
-
-.global ExecutePost
-
-KERNEL_DIRECT_PAGE = $DF00
-START_OF_HEAP = $00030000
+.global IRQ_EMU_HANDLER
+.global IRQ_DEVICE_HANDLER
+.global IRQ_NMI_HANDLER
+.global IRQ_BRK_HANDLER
+.global IRQ_ABORT_HANDLER
 
 ;-------------------------------------------------------------------------------
-; 32-Bit Data Macros
+; Kernel Vectors
 ;-------------------------------------------------------------------------------
-
-;
-; z32: Zeros out a 32 bit value at desination with option index
-;
-.macro z32  destination, index
-
-.ifblank index
-        stz destination
-        stz destination+2
-.else
-        stz destination, index
-        stz destination+2, index
-.endif
-
-.endmacro
-
-;
-; z32di: Zeros out a 32 bit value at Direct Indirect Long Indexed destination
-;
-.macro z32di  destination, destination_offset
-        lda #$0000
-.ifnblank destination_offset
-        ldy #destination_offset
-        sta [destination], Y
-        ldy #destination_offset+2
-.else
-        sta [destinoation]
-        ldy #$02
-.endif
-        sta [destination], y
-.endmacro
-
-;
-; cp32: Copies a 32 bit value from source to destination
-;
-.macro cp32  source, destination
-        lda source
-        sta destination
-        lda source + 2
-        sta destination + 2
-.endmacro
-
-;
-; cp32di: Copies a 32 bit value from source to Direct Indirect Long Indexed
-;         destination
-;
-.macro cp32di  source, destination, destination_offset
-
-        lda source
-
-.ifnblank destination_offset
-        ldy #destination_offset
-.else
-        ldy #$0000
-.endif
-
-        sta [destination], y
-        lda source + 2
-
-.ifnblank destination_offset
-        ldy #destination_offset + 2
-.else
-        ldy #$0002
-.endif
-
-        sta [destination], y
-.endmacro
-
-;
-; cp32si: Copies a 32 bit value from Direct Indirect Long Indexed source
-;         to a Direct Indirect Long Indexed destiation
-.macro cp32si  source, source_offset, destination
-        ldy #source_offset
-        lda [source], y
-        sta destination
-        ldy #source_offset + 2
-        lda [source], y
-        sta destination + 2
-.endmacro
-
-;
-; cp32sidi: Copies a 32 bit value from Direct Indirect Long Indexed source
-;           to a Direct Indirect Long Indexed destiation
-.macro cp32sidi  source, source_offset, destination, destination_offset
-        ldy #source_offset
-        lda [source], y
-        ldy #destination_offset
-        sta [destination], y
-        ldy #source_offset + 2
-        lda [source], y
-        ldy #destination_offset + 2
-        sta [destination], y
-.endmacro
-
-
-; fcp32: Copy a 32-bit value from stack frame
-.macro fcp32  frame_offset, destination
-
-        lda frame_offset, s
-        sta destination
-        lda frame_offset + 2, s
-        sta destination + 2
-
-.endmacro
-
-; fcpy32id: Copy a 32-bit value from stack frame to Direct Indirect Long
-;           Indexed destination
-.macro fcp32di  frame_offset, destination, destination_offset
-
-.ifblank destination_offset
-        ldy #$0000
-.else
-        ldy #destination_offset
-.endif
-
-        lda frame_offset, s
-        sta [destination], y
-
-.ifblank destination_offset
-        ldy #$0002
-.else
-        ldy #destination_offset + 2
-.endif
-        lda frame_offset + 2, s
-        sta [destination], y
-
-.endmacro
+.global KRNL_VEC_BREAK

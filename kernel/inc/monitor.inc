@@ -1,5 +1,5 @@
 ;
-; Copyright 2023 Craig Courtney
+; Copyright 2024 Craig Courtney
 ;
 ; Redistribution and use in source and binary forms, with or without
 ; modification, are permitted provided that the following conditions are met:
@@ -28,28 +28,4 @@
 ; POSSIBILITY OF SUCH DAMAGE.
 ;
 
-;===============================================================================
-; Hardware Vectors
-; Vectors necessary for 65C816 operation of reset and irqs.
-;===============================================================================
-
-.include "bootstrap.inc"
-.include "kernel.inc"
-
-.segment "VECTORS"
-    .addr   $0000                       ; Reserved
-    .addr   $0000                       ; Reserved
-    .addr   KernelCallDispatcher        ; Native Mode COP Vector
-    .addr   $0000                       ; Native Mode BRK Vector
-    .addr   $0000                       ; Native Mode ABORT Vector
-    .addr   $0000                       ; Native Mode NMI Vector
-    .addr   $0000                       ; Reserved
-    .addr   $0000                       ; Native Mode IRQ Vector
-    .addr   $0000                       ; Reserved
-    .addr   $0000                       ; Reserved
-    .addr   $0000                       ; Emulation COP Vector
-    .addr   $0000                       ; Reserved
-    .addr   $0000                       ; Emulation ABORT Vector
-    .addr   $0000                       ; Emulation NMI Vector
-    .addr   Bootstrap                   ; Reset Vector
-    .addr   $0000                       ; Emulation IRQ/BRK Vector
+.global MONITOR_BREAK

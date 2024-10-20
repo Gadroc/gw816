@@ -44,14 +44,14 @@ void bus_init();
 // Utility defines to check and retrieve data from bus_read PIO program.  Using these bypass overhead
 // of SDK since we are very timing critical when using them.
 #define BUS_READ_AVAILABLE          !(BUS_PIO->fstat & (1u << (PIO_FSTAT_RXEMPTY_LSB + BUS_READ_SM)))
-#define NEXT_BUS_READ_ADDRESS       (BUS_PIO->rxf[BUS_READ_SM] & 0x7F)
+#define NEXT_BUS_READ_ADDRESS       (BUS_PIO->rxf[BUS_READ_SM] & 0x3F)
 
 // Utility defines to deal with BUS_CONTROL_EVENT addresses.  These addresses include a RW bit as bit zero
 // of the address.
-#define BUS_EVENT_IS_READ(request)  (request.address & 1)
-#define BUS_EVENT_ADDR(request)     (request.address >> 1)
-#define BUS_EVENT_READ(addr)   ((addr<<1) | 1)
-#define BUS_EVENT_WRITE(addr)  (addr<<1)
+#define BUS_EVENT_IS_READ(request)  (request.address >> 1 & 1)
+#define BUS_EVENT_ADDR(request)     (request.address >> 2)
+#define BUS_EVENT_READ(addr)   ((addr<<2) | 3)
+#define BUS_EVENT_WRITE(addr)  (addr<<2)
 
 #define BUS_REQUEST_AVAILABLE !(BUS_PIO->fstat & (1u << (PIO_FSTAT_RXEMPTY_LSB + BUS_CONTROL_SM)))
 #define NEXT_BUS_REQUEST BUS_PIO->rxf[BUS_CONTROL_SM]
