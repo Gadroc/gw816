@@ -409,7 +409,7 @@ CaluclateFreeMemory:
 
 @loop:
     lda block_iterator + 2
-    beq @done
+    beq @exit
 
     inc block_count
 
@@ -438,7 +438,7 @@ DumpMemoryBlocks:
 
 @loop:
     lda block_iterator + 2
-    beq @done
+    beq @exit
 
     pea str_block_start
     jsr MonitorPrintString

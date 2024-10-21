@@ -40,17 +40,17 @@ input_buffer_size = 64
 
 .zeropage
 ;-------------------------------------------------------------------------------
-mon_reg_pbx:    .word $0000         ; PB Shadow (Program Bank)
-mon_reg_pcx:    .word $0000         ; PC Shadow (Program Counter)
-mon_reg_srx:    .byte $00           ; SR Shadow (Status Register)
-mon_reg_cx:     .word $0000         ; .C Shadow (C Register)
-mon_reg_xx:     .word $0000         ; .X Shadow (X Register)
-mon_reg_yx:     .word $0000         ; .Y Shadow (Y Register)
-mon_reg_spx:    .word $0000         ; SP Shadow (Stack Pointer)
-mon_reg_dpx:    .word $0000         ; DP Shadow (Direct Page)
-mon_reg_dbx:    .byte $00           ; DB Shadow (Data Bank)
+mon_reg_pbx:    .word $0000                         ; PB Shadow (Program Bank)
+mon_reg_pcx:    .word $0000                         ; PC Shadow (Program Counter)
+mon_reg_srx:    .byte $00                           ; SR Shadow (Status Register)
+mon_reg_cx:     .word $0000                         ; .C Shadow (C Register)
+mon_reg_xx:     .word $0000                         ; .X Shadow (X Register)
+mon_reg_yx:     .word $0000                         ; .Y Shadow (Y Register)
+mon_reg_spx:    .word $0000                         ; SP Shadow (Stack Pointer)
+mon_reg_dpx:    .word $0000                         ; DP Shadow (Direct Page)
+mon_reg_dbx:    .byte $00                           ; DB Shadow (Data Bank)
 
-input_buffer_idx:   .byte $00       ; Current Input Buffer Offset
+input_buffer_idx:   .byte $00                           ; Current Input Buffer Offset
 digit_max:          .byte $00
 bits_per_digit:     .byte $00
 
@@ -63,10 +63,6 @@ bits_per_digit:     .byte $00
 ; MR5 - Current end address
 ; MR6 - Current start address
 ;
-START_ADDR = MR6
-END_ADDR = MR5
-DEST_ADDR = MR4
-
 
 .bss
 ;-------------------------------------------------------------------------------
@@ -136,15 +132,39 @@ cmd_count = cmd_vectors - cmd_table
 ;-------------------------------------------------------------------------------
 ; Macro to parse argument to specific register
 ;-------------------------------------------------------------------------------
-.macro parse_argument_to_reg    reg_addr, err_lbl
+.macro parse_argument_to_reg    reg, err_lbl
                 jsr parse_argument
-                bcs err_lbl
                 SET_M_16BIT
+                bcs err_lbl
                 lda MR1L
-                sta reg_addr
+                sta z:reg
                 lda MR1H
-                sta reg_addr+2
+                sta z:reg+2
 .endmacro
+
+.macro check_reg_addr_order   start_reg, end_reg, is_after
+;-------------------------------------------------------------------------------
+; Validates that the end address is after the start address
+;-------------------------------------------------------------------------------
+; Preconditions: m 16-Bit
+; Inputs: MR6 - End address
+;         MR7 - Start Address
+; Changes: .A
+; Outputs: Carry Set if invalid, Carry Cleared if valid
+;-------------------------------------------------------------------------------
+.scope
+                lda z:start_reg+2
+                cmp z:end_reg+2
+                bcc is_before       ; start high word is before end high word
+                bne is_after        ; end high word is before start high word
+                lda z:start_reg
+                cmp z:end_reg
+                beq is_before
+                bcs is_after        ; start low word is after end low word
+is_before:
+.endscope
+.endmacro
+
 
 .code
 ;-------------------------------------------------------------------------------
@@ -162,16 +182,16 @@ MONITOR_BREAK:
 .scope
                 EXP_MX_16BIT
 
-                pea __KDIRECT_START__   ; Setup Kernel DP
+                pea __KDIRECT_START__           ; Setup Kernel DP
                 pld
 
                 ply                     ; Recover registers
                 plx
                 pla
 
-                sta mon_reg_cx          ;.C
-                stx mon_reg_xx          ;.X
-                sty mon_reg_yx          ;.Y
+                sta mon_reg_cx                  ;.C
+                stx mon_reg_xx                  ;.X
+                sty mon_reg_yx                  ;.Y
 
                 SET_X_8BIT              ; Use X to pull 8bit data
 
@@ -196,7 +216,7 @@ MONITOR_BREAK:
 
                 cli
 
-                ; Falltrhough to register display
+    ; Falltrhough to register display
 .endscope
 
 display_registers:
@@ -210,18 +230,18 @@ display_registers:
 ;-------------------------------------------------------------------------------
 .scope
                 SET_MX_16BIT
-                ; Display Register Labels
+    ; Display Register Labels
                 lda #str_mon_reg
                 jsr DEBUG_SPRINT
 
-                ; Program Bank
+    ; Program Bank
                 SET_M_8BIT
                 lda mon_reg_pbx
                 jsr DEBUG_HEX_BYTE
 
                 jsr print_space
 
-                ; Program Counter
+    ; Program Counter
                 SET_M_16BIT
                 lda mon_reg_pcx
                 jsr DEBUG_HEX_WORD
@@ -257,7 +277,7 @@ register_loop:  jsr print_space
                 lda mon_reg_dbx
                 jsr DEBUG_HEX_BYTE
 
-                ; Fall Through to Command Input
+    ; Fall Through to Command Input
 .endscope
 
 monitor_command_clear:
@@ -275,10 +295,10 @@ monitor_command:
 
                 ; Extract Command Character from input buffer
                 SET_MX_8BIT
-                stz input_buffer_idx    ; Reset index to read buffer
-                jsr skip_white_space    ; Skip to first character
-                bcs monitor_default_error       ; If no char found error
-                lda input_buffer, x     ; Load in command character
+                stz input_buffer_idx        ; Reset index to read buffer
+                jsr skip_white_space        ; Skip to first character
+                bcs monitor_default_error   ; If no char found error
+                lda input_buffer, x         ; Load in command character
                 cmp #$61
                 bcc @cmdcheck
                 sbc #$20
@@ -287,7 +307,7 @@ monitor_command:
 @cmdcheck:      cmp cmd_table, x
                 bne @next
 
-                inc input_buffer_idx    ; Advance index for param parsing
+                inc input_buffer_idx        ; Advance index for param parsing
                 txa
                 clc
                 rol
@@ -329,18 +349,16 @@ dump_memory:
                 SET_MX_16BIT
 
                 ; Parse First Param as Start Address
-                parse_argument_to_reg START_ADDR, default_end
-;                jsr parse_startaddress
-;                bcs @default_end
+                ; If not present use default size from last value of start
+                parse_argument_to_reg MR6, default_end
 
                 ; Parse Second Param as End Address
-                parse_argument_to_reg END_ADDR, default_end
-;                jsr parse_endaddress
-;                bcs @default_end
+                ; If not present use default size
+                parse_argument_to_reg MR5, default_end
 
-                jsr validate_start_before_end
-                bcc dump
-                jmp monitor_default_error
+                ; Validate start comes before end
+                check_reg_addr_order MR6, MR5, monitor_default_error
+                bra dump
 
                 ; Default to sixteen bytes
 default_end:    SET_M_16BIT
@@ -378,38 +396,119 @@ done:           jmp monitor_command_clear
 
 copy_memory:
 ;-------------------------------------------------------------------------------
-; Copies a block of memory to a second location.
+; Copies a block of memory to a second location
 ;
 ; T start_address end_address dest_address
 ;-------------------------------------------------------------------------------
 ;-------------------------------------------------------------------------------
 .scope
+                EXP_MX_16BIT
+
                 ; Parse First Param as Start Address
-                parse_argument_to_reg START_ADDR, error
+                parse_argument_to_reg MR6, error
 
                 ; Parse Second Param as End Address
-                parse_argument_to_reg END_ADDR, error
+                parse_argument_to_reg MR5, error
 
-                parse_argument_to_reg DEST_ADDR, error
+                ; Parse Third Param as destination
+                parse_argument_to_reg MR4, error
 
-                ; Check
-                jsr validate_start_before_end
-                bcs error
-
-                ;jsr check_dest_before_start
-                ;bcs forward
-
-reverse:        ; When dest is after start to iterate backwards to prevent
-                ; overlap issues.
-
-                bra execute_copy
-
-forward:        ; When dest is before start to iterate forwards to prevent
-                ; overlap issues.
-
-execute_copy:
+                ; Validate end is not before start
+                check_reg_addr_order MR6, MR5, error
+                jmp do_copy
 
 error:          jmp monitor_default_error
+
+do_copy:        ; Check copy direction
+                check_reg_addr_order MR6, MR4, forward_copy
+                jmp reverse_copy
+
+forward_copy:   ; When dest is before start iterate forwards
+
+@fwd_loop:      ; Copy byte end to dest
+                SET_M_8BIT
+                lda [MR6]
+                sta [MR4]
+                SET_M_16BIT
+
+                ; Check if done
+                lda MR5H
+                cmp MR6H
+                bne @increment
+                lda MR5L
+                cmp MR6L
+                bne @increment
+                jmp monitor_command_clear
+
+@increment:     ; Increment start and dest and loop to copy byte
+                clc
+                lda MR6L
+                adc #$0001
+                sta MR6L
+                lda MR6H
+                adc #$0000
+                sta MR6H
+
+                clc
+                lda MR4L
+                adc #$0001
+                sta MR4L
+                lda MR4H
+                adc #$0000
+                sta MR4H
+
+                bra @fwd_loop
+
+reverse_copy:   ; When dest is after start iterated backwards
+
+                ; Increment dest by size
+                lda MR5L
+                sbc MR6L
+                sta MR1L
+                lda MR6H
+                sbc MR6H
+                sta MR1H
+
+                lda MR4L
+                adc MR1L
+                sta MR4L
+                lda MR4H
+                adc MR1H
+                sta MR4H
+
+@rev_loop:      ; Copy byte end to dest
+                SET_M_8BIT
+                lda [MR5]
+                sta [MR4]
+                SET_M_16BIT
+
+                ; Check if done
+                lda MR5H
+                cmp MR6H
+                bne @decrement
+                lda MR5L
+                cmp MR6L
+                bne @decrement
+                jmp monitor_command_clear
+
+@decrement:     ; Decrement end and dest and loop to copy byte
+                sec
+                lda MR5L
+                sbc #$0001
+                sta MR5L
+                lda MR5H
+                sbc #$0000
+                sta MR5H
+
+                sec
+                lda MR4L
+                sbc #$0001
+                sta MR4L
+                lda MR4H
+                sbc #$0000
+                sta MR4H
+
+                bra @rev_loop
 .endscope
 
 
@@ -459,14 +558,13 @@ fill_memory:
 ;-------------------------------------------------------------------------------
 .scope
                 ; Parse First Param as Start Address
-                parse_argument_to_reg START_ADDR, error
+                parse_argument_to_reg MR6, error
 
                 ; Parse Second Param as End Address
-                parse_argument_to_reg END_ADDR, error
+                parse_argument_to_reg MR5, error
 
                 ; Validate start is before end
-                jsr validate_start_before_end
-                bcs error
+                check_reg_addr_order MR6, MR5, error
 
                 ; Parse Data
                 SET_M_8BIT
@@ -512,27 +610,6 @@ compare_memory:
 .endscope
 
 
-validate_start_before_end:
-;-------------------------------------------------------------------------------
-; Validates that the end address is after the start address
-;-------------------------------------------------------------------------------
-; Preconditions: m 16-Bit
-; Inputs: MR6 - End address
-;         MR7 - Start Address
-; Changes: .A
-; Outputs: Carry Set if invalid, Carry Cleared if valid
-;-------------------------------------------------------------------------------
-.scope
-                lda MR6H
-                cmp MR5H
-                bcc done        ; Carry Clear so valid MR7H is lower
-                bne done        ; Carry Set so MR7H is higher
-                lda MR6L
-                cmp MR5L        ; Carry will be clear if MR7 is lower
-done:           rts
-.endscope
-
-
 print_start_address:
 ;-------------------------------------------------------------------------------
 ; Prints the current start address
@@ -563,10 +640,10 @@ print_memory:
                 lda #str_memline_start
                 jsr DEBUG_SPRINT
 
-                ; Display Address
+    ; Display Address
                 jsr print_start_address
 
-                ; Display Hex Values
+    ; Display Hex Values
                 SET_MX_8BIT
                 ldy #$00
 hex_loop:       jsr print_space
@@ -658,9 +735,9 @@ parse_argument:
                 stz MR1H
 
                 jsr skip_white_space
-                bcs failure                 ; No parameter found
+                bcs failure                     ; No parameter found
 
-                ; Check to see if binary prefix
+    ; Check to see if binary prefix
                 SET_MX_8BIT
                 lda #$10
                 sta digit_max
@@ -696,20 +773,20 @@ digit_to_bin:   SET_M_8BIT
                 bcc sub_zero
                 sbc #$20
 
-                ; Subtract out ASCII zero
+    ; Subtract out ASCII zero
 sub_zero:       sec
                 sbc #'0'
                 bcc failure
 
-                ; Check to see if we are 0-9 if so we are done
+    ; Check to see if we are 0-9 if so we are done
                 cmp #10
                 bcc check_max
 
-                ; Remove punctuation, and error if value is less than a
+    ; Remove punctuation, and error if value is less than a
                 sbc #$07
                 bcc failure
 
-                ; Validate value is within range
+    ; Validate value is within range
 check_max:      cmp digit_max
                 bcs failure
 
@@ -737,17 +814,17 @@ read_line:
 .scope
                 php
 
-                ; Make sure zero terminated
+    ; Make sure zero terminated
                 SET_MX_8BIT
                 ldx input_buffer_idx
                 stz input_buffer, x
 
-                ; Print out current content of the buffer
+    ; Print out current content of the buffer
                 SET_M_16BIT
                 lda #input_buffer
                 jsr DEBUG_SPRINT
 
-                ; Turn on the cursor
+    ; Turn on the cursor
                 lda #str_cursor_on
                 jsr DEBUG_SPRINT
 
@@ -756,19 +833,19 @@ input_loop:     nop
                 jsr DEBUG_GET_CHAR
                 bcs input_loop
 
-                ; Check to see if return has been received
+    ; Check to see if return has been received
                 cmp #ASC_CR
                 beq return
 
-                ; Check for backspace
+    ; Check for backspace
                 cmp #ASC_BS
                 beq backspace
 
-                ; Check for delete
+    ; Check for delete
                 cmp #ASC_DEL
                 beq backspace
 
-                ; Now check to see if we are in ascii range
+    ; Now check to see if we are in ascii range
                 cmp #ASC_SPACE
                 bcc alert
                 cmp #ASC_DEL

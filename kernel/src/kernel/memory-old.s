@@ -375,7 +375,7 @@ MemorySetupUsedBlock:
     ; Check to see if we need to clear allocation contents
     lda frame_memoryalloc_flags, s
     bit #MEM_ALLOC_CLEAR
-    beq @done
+    beq @exit
 
     ; Setup memory_alloc_temp_block to point to start of returned memory
     fcp32 frame_memoryalloc_ptr, temp_block
@@ -616,7 +616,7 @@ MemoryAvailable:
 
 @loop:
     lda temp_block + 2
-    beq @done
+    beq @exit
 
     ; Add blocks size to total free meme
     clc

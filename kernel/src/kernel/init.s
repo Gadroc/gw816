@@ -104,24 +104,24 @@ init_data:      ldx #$0000
 
 init_mmu:       SET_M_16BIT
 
-                ; Seg $000 is global access (relocated to process specific seg)
+    ; Seg $000 is global access (relocated to process specific seg)
                 ldx #$0000
                 stx MMU_ACL_SEG
                 lda #ACL_MODE_GLOB
                 sta MMU_ACL
 
-                ; Seg $001-$0CF contains ROM executable code
+    ; Seg $001-$0CF contains ROM executable code
                 inx
                 lda #ACL_READ_ONLY
                 MMU_FILL_ACL(__RODATA_LOAD__ >> 12)
 
-                ; Seg $0D0-$DF contains read-only data that has no code
-                ; X set to $0D0 from previous fill
+    ; Seg $0D0-$DF contains read-only data that has no code
+    ; X set to $0D0 from previous fill
                 lda #ACL_READ_ONLY|ACL_NO_EXEC
                 MMU_FILL_ACL(__DATA_RUN__ >> 12)
 
-                ; Seg $00E0-$0FF contains read-write data and IO but no code
-                ; X set to $0E0 from previous fill
+    ; Seg $00E0-$0FF contains read-write data and IO but no code
+    ; X set to $0E0 from previous fill
                 lda #ACL_NO_EXEC
                 MMU_FILL_ACL(__PCODE_START__ >> 12)
 
@@ -151,40 +151,40 @@ init_monitor:   lda #MONITOR_BREAK
                 sta KRNL_VEC_BREAK
                 stz KRNL_VEC_BREAK  + 2
 
-find_max_seg:   ; Disable VRAM so we can find all RAM
+find_max_seg:                       ; Disable VRAM so we can find all RAM
                 SET_M_8BIT
                 lda #MMC_VRAM_DISABLE
                 tsb MMU_MMC
                 SET_M_16BIT
 
-                ;  Reset MR0 to $00000000
+    ;  Reset MR0 to $00000000
                 stz MR0L
                 stz MR0H
                 stz MAX_SEGMENT
 
-                ; Set index to the first segment to test kernel / romstrap
-                ; require the first bank of RAM to exist/work so we just start
-                ; testing at bank one.
+    ; Set index to the first segment to test kernel / romstrap
+    ; require the first bank of RAM to exist/work so we just start
+    ; testing at bank one.
                 ldx #$0100
 
-@loop:          stx MR0L+1      ; Replace the upper 12bits of MR0 address
+@loop:          stx MR0L+1                      ; Replace the upper 12bits of MR0 address
                 lda #$5115
                 sta [MR0]
                 cmp [MR0]
-                bne @done        ; If readback does we are outside working RAM
+                bne @done                       ; If readback does we are outside working RAM
                 stx MAX_SEGMENT
                 inx
-                cpx #$1000      ; We only support 16MB of RAM
+                cpx #$1000                      ; We only support 16MB of RAM
                 bne @loop
 
-                ; Reenable VRAM so we can find all RAM
+    ; Reenable VRAM so we can find all RAM
  @done:         SET_M_8BIT
                 lda #MMC_VRAM_DISABLE
                 trb MMU_MMC
 
                 SET_REGISTER SMC_SCR, SCR_LED_SMASK, SCR_LED_ON
 
-                ; Print Welcome
+    ; Print Welcome
                 SET_M_16BIT
                 lda #str_welcome_start
                 jsr DEBUG_SPRINT

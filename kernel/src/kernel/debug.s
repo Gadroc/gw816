@@ -51,11 +51,11 @@ DEBUG_PUT_CHAR:
 .scope
                 EXP_M_8BIT
                 xba                     ; Save off byte to send in .B
-                lda #ISR_CONSOLE_TX_RDY ; Wait till TX buffer has room
+                lda #ISR_CONSOLE_TX_RDY         ; Wait till TX buffer has room
 @wait:          bit SMC_ISR
                 beq @wait
                 xba                     ; Retrieve byte to send from .B
-                sta SMC_CDR             ; Send it to UART
+                sta SMC_CDR                     ; Send it to UART
                 rts
 .endscope
 
@@ -72,10 +72,10 @@ DEBUG_GET_CHAR:
 .scope
                 EXP_M_8BIT
                 sec                     ; Pre-load carry bit for no data
-                lda #ISR_CONSOLE_RX_RDY ; Check to see if RX buffer has data
+                lda #ISR_CONSOLE_RX_RDY         ; Check to see if RX buffer has data
                 bit SMC_ISR
                 beq @nodata
-                lda SMC_CDR             ; If so read data from UART and
+                lda SMC_CDR                     ; If so read data from UART and
                 clc                     ; clear carry to indicated data
 @nodata:        rts
 .endscope
@@ -92,16 +92,16 @@ DEBUG_SPRINT:
                 php
 
                 EXP_M_16BIT
-                sta MR0L                ; Store address in string to print
+                sta MR0L                        ; Store address in string to print
 
                 SET_M_8BIT
                 SET_X_16BIT
-                ldy #$0000              ; Reset Y to index through string
-@loop:          lda (MR0L), y           ; Load next byte of string
-                beq @done               ; If it's zero exit out
-                jsr DEBUG_PUT_CHAR      ; Send character to UART
-                iny                     ; Increment index and check for next
-                bne @loop               ;  byte
+                ldy #$0000                      ; Reset Y to index through string
+@loop:          lda (MR0L), y                   ; Load next byte of string
+                beq @done                       ; If it's zero exit out
+                jsr DEBUG_PUT_CHAR              ; Send character to UART
+                iny                             ; Increment index and check for next
+                bne @loop                       ;  byte
 
 @done:          plp
                 ply
@@ -146,7 +146,7 @@ DEBUG_HEX_BYTE:
                 SET_MX_8BIT
 
 @split_byte:    pha                 ; Save off source for high-nibble
-                and #%00001111      ; Remove high-nibble
+                and #%00001111                  ; Remove high-nibble
                 tax                 ; Store low-nibble in X
                 pla                 ; Fetch source for high-nibble
                 lsr                 ; Shift high-nibble down to bits 3:0
@@ -165,7 +165,7 @@ DEBUG_HEX_BYTE:
 @print_nibble:  clc
                 cmp #$0A
                 bcc :+
-                adc #$06            ; Offset to skip punctuation for A-F
-:               adc #$30            ; Offset to ASCII Zero
+                adc #$06                        ; Offset to skip punctuation for A-F
+:               adc #$30                        ; Offset to ASCII Zero
                 jmp DEBUG_PUT_CHAR
 .endscope
