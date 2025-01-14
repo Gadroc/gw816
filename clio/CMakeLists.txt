@@ -10,15 +10,16 @@ set(CMAKE_CXX_STANDARD 17)
 pico_sdk_init()
 
 add_executable(clio_firmware
-        main.c inc/config.h modules/serial_module.c inc/serial_module.h inc/irq_module.h inc/reg_module.h modules/reg_module.c inc/bus_module.h modules/bus_module.c inc/ring_buffer.h inc/rom_module.h modules/rom_module.c inc/led_module.h modules/led_module.c
-        kernel.c romstrap.c)
+        main.c inc/config.h modules/serial_module.c inc/serial_module.h inc/irq_module.h inc/reg_module.h inc/bus_module.h modules/bus_module.c inc/ring_buffer.h inc/rom_module.h modules/rom_module.c inc/led_module.h modules/led_module.c
+        kernel.c
+        modules/irq_module.c)
 include_directories(clio_firmware PRIVATE inc)
-add_custom_command(
-        OUTPUT romstrap.c
-        COMMAND xxd -i romstrap.bin ${CMAKE_CURRENT_BINARY_DIR}/romstrap.c
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/romstrap.bin
-)
+#add_custom_command(
+#        OUTPUT romstrap.c
+#        COMMAND xxd -i romstrap.bin ${CMAKE_CURRENT_BINARY_DIR}/romstrap.c
+#        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+#        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/romstrap.bin
+#)
 add_custom_command(
         OUTPUT kernel.c
         COMMAND xxd -i kernel.bin ${CMAKE_CURRENT_BINARY_DIR}/kernel.c
@@ -43,5 +44,5 @@ target_link_libraries(clio_firmware PRIVATE
 pico_generate_pio_header(clio_firmware ${CMAKE_CURRENT_LIST_DIR}/modules/bus_module.pio)
 
 # Setup USB for standard io
-pico_enable_stdio_usb(clio_firmware 0)
-pico_enable_stdio_uart(clio_firmware 1)
+pico_enable_stdio_usb(clio_firmware 1)
+pico_enable_stdio_uart(clio_firmware 0)

@@ -1,5 +1,5 @@
 ;
-; Copyright 2024 Craig Courtney
+; Copyright 2025 Craig Courtney
 ;
 ; Redistribution and use in source and binary forms, with or without
 ; modification, are permitted provided that the following conditions are met:
@@ -28,35 +28,22 @@
 ; POSSIBILITY OF SUCH DAMAGE.
 ;
 
-;===============================================================================
-; Since Clio does not have enough address lines to fully emulate ROM, we have
-; a small section of bootstrap ROM which will sequentially read ROM code
-; via RDR register and copies it into RAM.  It will then tranfser
-; control to the Kenerl.  The boostrap code lives in the address space
-; of the native interrupt vector tabel.  The kernel code is responsbile for
-; setting interrupt vectors during initialization.
-;===============================================================================
-
-.include "gw816.inc"
-
-kernel_start = $D000
-
-.code
-bootstrap:
-                SET_NATIVE_MODE
-                SET_X_16BIT
-                ldx #kernel_start
-loop:           lda SMC_RDR
-                sta a:$0000,x
-                stz a:$1000
-                cmp a:$0000,x
-                inx
-                lda SMC_SCR
-                bit #SCR_ROM_COMPLETE
-                beq loop
-                brk
-                ;jmp (kernel_start)
+.include "kernel.inc"
 
 .segment "VECTORS"
-    .word   bootstrap
-    .word   $0000
+                    .word $0000
+                    .word $0000
+VEC_COP:            .word IRQ_BRK_HANDLER
+VEC_BRK:            .word IRQ_BRK_HANDLER
+VEC_ABORTB:         .word IRQ_ABORT_HANDLER
+VEC_NMIB:           .word IRQ_NMI_HANDLER
+                    .word $0000
+VEC_IRQB:           .word IRQ_DEVICE_HANDLER
+                    .word $0000
+                    .word $0000
+VEC_EMU_COP:        .word IRQ_EMU_HANDLER
+                    .word $0000
+VEC_EMU_ABORTB:     .word IRQ_EMU_HANDLER
+VEC_EMU_NMIB:       .word IRQ_EMU_HANDLER
+VEC_EMU_RESETB:     .word KERNEL_START
+VEC_EMU_IRQB_BRK:   .word IRQ_EMU_HANDLER

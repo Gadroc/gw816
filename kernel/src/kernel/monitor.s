@@ -34,23 +34,23 @@
 .include "ascii.inc"
 .include "debug.inc"
 
-.import __KDIRECT_START__
+.import __DIRECT_START__
 
 input_buffer_size = 64
 
 .zeropage
 ;-------------------------------------------------------------------------------
-mon_reg_pbx:    .word $0000                         ; PB Shadow (Program Bank)
-mon_reg_pcx:    .word $0000                         ; PC Shadow (Program Counter)
-mon_reg_srx:    .byte $00                           ; SR Shadow (Status Register)
-mon_reg_cx:     .word $0000                         ; .C Shadow (C Register)
-mon_reg_xx:     .word $0000                         ; .X Shadow (X Register)
-mon_reg_yx:     .word $0000                         ; .Y Shadow (Y Register)
-mon_reg_spx:    .word $0000                         ; SP Shadow (Stack Pointer)
-mon_reg_dpx:    .word $0000                         ; DP Shadow (Direct Page)
-mon_reg_dbx:    .byte $00                           ; DB Shadow (Data Bank)
+mon_reg_pbx:    .word $0000                     ; PB Shadow (Program Bank)
+mon_reg_pcx:    .word $0000                     ; PC Shadow (Program Counter)
+mon_reg_srx:    .byte $00                       ; SR Shadow (Status Register)
+mon_reg_cx:     .word $0000                     ; .C Shadow (C Register)
+mon_reg_xx:     .word $0000                     ; .X Shadow (X Register)
+mon_reg_yx:     .word $0000                     ; .Y Shadow (Y Register)
+mon_reg_spx:    .word $0000                     ; SP Shadow (Stack Pointer)
+mon_reg_dpx:    .word $0000                     ; DP Shadow (Direct Page)
+mon_reg_dbx:    .byte $00                       ; DB Shadow (Data Bank)
 
-input_buffer_idx:   .byte $00                           ; Current Input Buffer Offset
+input_buffer_idx:   .byte $00                   ; Current Input Buffer Offset
 digit_max:          .byte $00
 bits_per_digit:     .byte $00
 
@@ -182,7 +182,7 @@ MONITOR_BREAK:
 .scope
                 EXP_MX_16BIT
 
-                pea __KDIRECT_START__           ; Setup Kernel DP
+                pea __DIRECT_START__           ; Setup Kernel DP
                 pld
 
                 ply                     ; Recover registers
@@ -532,7 +532,33 @@ edit_memory:
 ;-------------------------------------------------------------------------------
 ;-------------------------------------------------------------------------------
 .scope
-@done:          jmp monitor_command_clear
+                EXP_MX_16BIT
+
+                ; Parse First Param as Start Address
+                parse_argument_to_reg MR6, error
+
+loop:           jsr parse_argument
+                bcs done
+
+                SET_M_8BIT
+                lda MR1L
+                sta [MR6]
+
+                clc
+                lda MR6L
+                adc #$0001
+                sta MR6L
+                lda MR6H
+                adc #$0000
+                sta MR6H
+
+                bra loop
+
+done:           SET_M_16BIT
+                jmp monitor_command_clear
+
+error:          SET_M_16BIT
+                jmp monitor_default_error
 .endscope
 
 
@@ -545,7 +571,59 @@ edit_registers:
 ;-------------------------------------------------------------------------------
 ;-------------------------------------------------------------------------------
 .scope
-@done:          jmp monitor_command_clear
+                EXP_MX_16BIT
+
+                jsr parse_argument
+                bcs done
+                SET_M_8BIT
+                lda MR1L
+                sta mon_reg_pbx
+                SET_M_16BIT
+
+                jsr parse_argument
+                bcs done
+                lda MR1L
+                sta mon_reg_pcx
+
+                jsr parse_argument
+                bcs done
+                SET_M_8BIT
+                lda MR1L
+                sta mon_reg_srx
+                SET_M_16BIT
+
+                jsr parse_argument
+                bcs done
+                lda MR1L
+                sta mon_reg_cx
+
+                jsr parse_argument
+                bcs done
+                lda MR1L
+                sta mon_reg_xx
+
+                jsr parse_argument
+                bcs done
+                lda MR1L
+                sta mon_reg_yx
+
+                jsr parse_argument
+                bcs done
+                lda MR1L
+                sta mon_reg_spx
+
+                jsr parse_argument
+                bcs done
+                lda MR1L
+                sta mon_reg_dpx
+
+                jsr parse_argument
+                bcs done
+                SET_M_8BIT
+                lda MR1L
+                sta mon_reg_dpx
+
+done:           jmp display_registers
 .endscope
 
 
@@ -625,6 +703,7 @@ print_start_address:
                 jmp DEBUG_HEX_WORD
 .endscope
 
+
 print_memory:
 ;-------------------------------------------------------------------------------
 ; Displays a line of 16 bytes of memory
@@ -640,10 +719,10 @@ print_memory:
                 lda #str_memline_start
                 jsr DEBUG_SPRINT
 
-    ; Display Address
+                ; Display Address
                 jsr print_start_address
 
-    ; Display Hex Values
+                ; Display Hex Values
                 SET_MX_8BIT
                 ldy #$00
 hex_loop:       jsr print_space
@@ -719,8 +798,8 @@ nodata:         plp
 parse_argument:
 ;-------------------------------------------------------------------------------
 ; Parses the next argument from tne input buffer.  Argument are supported in
-; decimal, hex, or binary representations.  Default is decimals, hexadecimals
-; should be prefaced with $ and binary with %.
+; hexadecimal, or binary representations.  Default is hexadecimals, binary
+; numbers should be prefaced with %.
 ;-------------------------------------------------------------------------------
 ; Precodnitions: Pm 8-Bit, Px 16-Bit
 ;                input_buffer_idx set to start of scan for parameter
@@ -737,7 +816,7 @@ parse_argument:
                 jsr skip_white_space
                 bcs failure                     ; No parameter found
 
-    ; Check to see if binary prefix
+                ; Check to see if binary prefix
                 SET_MX_8BIT
                 lda #$10
                 sta digit_max
@@ -773,20 +852,20 @@ digit_to_bin:   SET_M_8BIT
                 bcc sub_zero
                 sbc #$20
 
-    ; Subtract out ASCII zero
+                ; Subtract out ASCII zero
 sub_zero:       sec
                 sbc #'0'
                 bcc failure
 
-    ; Check to see if we are 0-9 if so we are done
+                ; Check to see if we are 0-9 if so we are done
                 cmp #10
                 bcc check_max
 
-    ; Remove punctuation, and error if value is less than a
+                ; Remove punctuation, and error if value is less than a
                 sbc #$07
                 bcc failure
 
-    ; Validate value is within range
+                ; Validate value is within range
 check_max:      cmp digit_max
                 bcs failure
 
@@ -814,17 +893,17 @@ read_line:
 .scope
                 php
 
-    ; Make sure zero terminated
+                ; Make sure zero terminated
                 SET_MX_8BIT
                 ldx input_buffer_idx
                 stz input_buffer, x
 
-    ; Print out current content of the buffer
+                ; Print out current content of the buffer
                 SET_M_16BIT
                 lda #input_buffer
                 jsr DEBUG_SPRINT
 
-    ; Turn on the cursor
+                ; Turn on the cursor
                 lda #str_cursor_on
                 jsr DEBUG_SPRINT
 
@@ -833,19 +912,19 @@ input_loop:     nop
                 jsr DEBUG_GET_CHAR
                 bcs input_loop
 
-    ; Check to see if return has been received
+                ; Check to see if return has been received
                 cmp #ASC_CR
                 beq return
 
-    ; Check for backspace
+                ; Check for backspace
                 cmp #ASC_BS
                 beq backspace
 
-    ; Check for delete
+                ; Check for delete
                 cmp #ASC_DEL
                 beq backspace
 
-    ; Now check to see if we are in ascii range
+                ; Now check to see if we are in ascii range
                 cmp #ASC_SPACE
                 bcc alert
                 cmp #ASC_DEL

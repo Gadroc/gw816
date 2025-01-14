@@ -25,32 +25,18 @@
 #ifndef CLIO_ROM_MODULE_H
 #define CLIO_ROM_MODULE_H
 
-#include "reg_module.h"
 #include <memory.h>
+#include "bus_module.h"
 
 #define SCR_ROM_COMPLETE    (0b10000000)
 
-extern const uint8_t romstrap_bin[];
-extern unsigned int romstrap_bin_len;
-
 extern const uint8_t kernel_bin[];
 extern unsigned int kernel_bin_len;
-extern uint32_t rom_index;
 
 void rom_init();
 
-static inline void rom_next_byte() {
-    REGISTER(REG_ADDR_RDR) = kernel_bin[rom_index++];
-    if (rom_index == kernel_bin_len) {
-        REGISTER_SET_FLAG(REG_ADDR_SCR, SCR_ROM_COMPLETE);
-    }
-}
-
 static inline void rom_reset() {
-    memcpy(&REGISTER(REG_ADDR_BOOTLOADER), &romstrap_bin, romstrap_bin_len);
-    REGISTER_CLEAR_FLAG(REG_ADDR_SCR, SCR_ROM_COMPLETE);
-    rom_index = 0;
-    rom_next_byte();
+    memcpy(&bus_data, &kernel_bin, (BUS_DATA_SIZE < kernel_bin_len) ? kernel_bin_len : BUS_DATA_SIZE);
 }
 
 #endif //CLIO_ROM_MODULE_H

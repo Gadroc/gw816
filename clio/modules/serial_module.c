@@ -31,7 +31,7 @@ struct ring_buffer console_uart_rx_buffer;
 struct ring_buffer console_uart_tx_buffer;
 
 void serial_init() {
-    stdio_uart_init_full(uart0, 115200, UART_TX, UART_RX);
+    stdio_init_all();
     serial_reset();
 }
 

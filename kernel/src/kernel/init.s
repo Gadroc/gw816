@@ -29,11 +29,11 @@
 ;
 
 .global __ZEROPAGE_LOAD__, __ZEROPAGE_SIZE__
-.global __KSTACK_START__, __KSTACK_SIZE__
+.global __STACK_START__, __STACK_SIZE__
 .global __RODATA_LOAD__
 .global __DATA_LOAD__, __DATA_RUN__, __DATA_SIZE__
 .global __BSS_LOAD__, __BSS_SIZE__
-.global __KDIRECT_START__
+.global __DIRECT_START__
 .global __PCODE_START__
 
 .include "gw816.inc"
@@ -73,13 +73,14 @@ KRNL_VEC_BREAK:
 ;-------------------------------------------------------------------------------
 KERNEL_START:
 .scope
-                SET_REGISTER SMC_SCR, SCR_LED_SMASK, SCR_LED_SLOW
+                SET_NATIVE_MODE
+                SET_REGISTER SMC_SCR, SCR_LED_SMASK, SCR_LED_FAST
                 SET_MX_16BIT
 
-                lda #__KDIRECT_START__
+                lda #__DIRECT_START__
                 tcd
 
-                lda #__KSTACK_START__ + __KSTACK_SIZE__ - 1
+                lda #__STACK_START__ + __STACK_SIZE__ - 1
                 tcs
 
 clear_zeropage: SET_M_8BIT
@@ -90,17 +91,19 @@ clear_zeropage: SET_M_8BIT
                 bne :-
 
 clear_bss:      ldx #$0000
-:               stz __BSS_LOAD__, x
+:               cpx #__BSS_SIZE__
+                beq init_data
+                stz __BSS_LOAD__, x
                 inx
-                cpx #__BSS_SIZE__
-                bne :-
+                bra :-
 
 init_data:      ldx #$0000
-:               lda __DATA_LOAD__, x
+:               cpx #__DATA_SIZE__
+                beq init_mmu
+                lda __DATA_LOAD__, x
                 sta __DATA_RUN__, x
                 inx
-                cpx #__DATA_SIZE__
-                bne :-
+                bra :-
 
 init_mmu:       SET_M_16BIT
 
@@ -125,28 +128,6 @@ init_mmu:       SET_M_16BIT
                 lda #ACL_NO_EXEC
                 MMU_FILL_ACL(__PCODE_START__ >> 12)
 
-init_vectors:   lda #IRQ_EMU_HANDLER
-                sta VEC_EMU_COP
-                sta VEC_EMU_ABORTB
-                sta VEC_EMU_NMIB
-                sta VEC_EMU_RESETB
-                sta VEC_EMU_IRQB_BRK
-
-                lda #IRQ_DEVICE_HANDLER
-                sta VEC_IRQB
-
-                lda #IRQ_NMI_HANDLER
-                sta VEC_NMIB
-
-                lda #IRQ_BRK_HANDLER
-                sta VEC_BRK
-
-                lda #IRQ_ABORT_HANDLER
-                sta VEC_ABORTB
-
-;                lda #kernal_call_handler
-;                sta VEC_COP
-
 init_monitor:   lda #MONITOR_BREAK
                 sta KRNL_VEC_BREAK
                 stz KRNL_VEC_BREAK  + 2
@@ -167,14 +148,14 @@ find_max_seg:                       ; Disable VRAM so we can find all RAM
     ; testing at bank one.
                 ldx #$0100
 
-@loop:          stx MR0L+1                      ; Replace the upper 12bits of MR0 address
+@loop:          stx MR0L+1          ; Replace the upper 12bits of MR0 address
                 lda #$5115
                 sta [MR0]
                 cmp [MR0]
-                bne @done                       ; If readback does we are outside working RAM
+                bne @done           ; If readback does we are outside working RAM
                 stx MAX_SEGMENT
                 inx
-                cpx #$1000                      ; We only support 16MB of RAM
+                cpx #$1000          ; We only support 16MB of RAM
                 bne @loop
 
     ; Reenable VRAM so we can find all RAM

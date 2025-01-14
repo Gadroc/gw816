@@ -26,34 +26,30 @@
 #define CLIO_REG_MODULE_H
 
 #include <pico/stdlib.h>
+#include "bus_module.h"
 
-#define REG_ADDR_SCR    0x00
-#define REG_ADDR_RDR    0x01
-#define REG_ADDR_ISR    0x02
-#define REG_ADDR_ICR    0x03
-#define REG_ADDR_CDR    0x04
-#define REG_ADDR_KDR    0x05
-#define REG_ADDR_MDR    0x06
-#define REG_ADDR_TCR    0x07
-#define REG_ADDR_TCL    0x08
-#define REG_ADDR_TCH    0x09
-#define REG_ADDR_MCR    0x0A
+#define REG_BASE_ADDR   0x3FC0
 
-#define REG_ADDR_BOOTLOADER 0x20
-#define REG_ADDR_VECTORS    0x20
+#define REG_ADDR_SCR    0x3FC0
+#define REG_ADDR_RDR    0x3FC1
+#define REG_ADDR_ISR    0x3FC2
+#define REG_ADDR_ICR    0x3FC3
+#define REG_ADDR_CDR    0x3FC4
+#define REG_ADDR_KDR    0x3FC5
+#define REG_ADDR_MDR    0x3FC6
+#define REG_ADDR_TCR    0x3FC7
+#define REG_ADDR_TCL    0x3FC8
+#define REG_ADDR_TCH    0x3FC9
+#define REG_ADDR_MCR    0x3FCA
 
-#define REGISTER_COUNT 0x40
+#define REG_ADDR_VECTORS    0x3FE0
 
-extern volatile uint8_t register_data[REGISTER_COUNT];
+#define REGISTER(address)                   bus_data[address]
+#define REGISTER_SET_FLAG(address, flag)    bus_data[address] |= flag
+#define REGISTER_CLEAR_FLAG(address, flag)  bus_data[address] &= ~flag
+#define REGISTER_SET_MASKED(address, value, mask) bus_data[address] = (bus_data[address] & ~mask) | (value & mask)
 
-void registers_init();
-
-#define REGISTER(address)                   register_data[address]
-#define REGISTER_SET_FLAG(address, flag)    register_data[address] |= flag
-#define REGISTER_CLEAR_FLAG(address, flag)  register_data[address] &= ~flag
-#define REGISTER_SET_MASKED(address, value, mask) register_data[address] = (register_data[address] & ~mask) | (value & mask)
-
-#define REGISTER_IS_SET(address, flag)      ((register_data[address] & flag) == flag)
-#define REGISTER_NOT_SET(address, flag)     ((register_data[address] & flag) == 0)
+#define REGISTER_IS_SET(address, flag)      ((bus_data[address] & flag) == flag)
+#define REGISTER_NOT_SET(address, flag)     ((bus_data[address] & flag) == 0)
 
 #endif //CLIO_REG_MODULE_H
