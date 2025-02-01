@@ -22,35 +22,27 @@
 ; USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;
 
-.define CLK_PIN 27
-.define CS_PIN 28
+.define RE_PIN 28
+.define CS_PIN 29
 
 ;
 ; bus_control
 ; -----------
-; Manages turning the DATA PINs between outputs and inputs.
+; Manage pin direction of data pins for reading.
 ;
-; Rx Buffer: N/A
-; Tx Buffer: N/A
-;
-; Input Pins: A0-A13, D7-0, RW
 ; Output Pins: D0-D7
 ; JMP Pin: CS_PIN
 ;
 .program bus_control
-next:
 .wrap_target
-    mov osr, null               ; Reset OSR to zero for setting DATA PINs to input
-    wait 0 gpio CLK_PIN         ; Wait for clock low
-    out pindirs, 8          [7] ; Set DATA PINs to input and wait for tAH
-    in pins, 23                 ; Shift in Address / RW and move RW in X
-    in null, 31                 ;
-    mov x, isr                  ;
-    mov osr, ~null              ; Reset OSR to ones for setting DATA PINs to output
-    wait 1 gpio CLK_PIN         ; Wait for high clock
-    jmp !x next                 ; If RW is zero this is a write so skip
-    jmp pin next                ; If CS is high then we are not selected so skip
-    out pindirs, 8              ; Turn DATA PINs to output
+    mov osr, ~null
+    wait 0 gpio RE_PIN
+    jmp skip
+    out pindirs, 8
+ skip:
+    mov osr, null
+    wait 1 gpio RE_PIN
+    out pindirs, 8
 .wrap
 
 ;
@@ -66,50 +58,24 @@ next:
 ; RX Buffer - Populated with memory address ROM/Registers to read.
 ; Tx Buffer - Data that will be written out to the bus.
 ;
-; Input Pins: A0-A13
+; Input Pins: A0-A15
 ; Output Pins: D0-D7
 ; JMP Pin: CS_PIN
 ;
 .program bus_read
+.side_set 1
 skip:
-    wait 1 gpio CLK_PIN
+    wait 1 gpio RE_PIN  side 1  ; Skip to the next request
 .wrap_target
-    mov isr, y                  ; Move base address of register data
-    wait 0 gpio CLK_PIN  [7]    ; Wait for a Phi2 low for tAH
-    jmp pin skip
-    in pins, 14                 ; Shift in lower 14 bits of address
-    wait 1 gpio CLK_PIN         ; Wait for clock high
-    pull block                  ; Wait for data available
-    out pins, 8                 ; Shift out the data
-.wrap
-
-;
-; reg_events
-; --------
-; Creates a stream of events for register activity (addresses 3fc0 - 3fff).
-;
-; RX Buffer - Populated with address + data for register reads/writes.
-;               Bits 31-23 - Unused
-;               Bits    22 - Read Flag
-;               Bits 21:14 - Data
-;               Bit   13:0 - Address
-;
-; Input Pins: A0-A13, D0-D7, WE
-; JMP Pin: CS_PIN
-;
-.program reg_events
-    mov isr, ~null                  ; Prepare Y to match top 8 bits of address being all high
-    in null, 24
-    mov y, isr
-.wrap_target
-skip:
-    wait 0 gpio CLK_PIN [10]        ; Wait for a Phi2 low for tAH
-    in pins, 14                     ; Check to see if top 8 bits of address are high
-    in null, 24
-    mov x, isr
-    jmp x!=y skip                   ; If not skip processing as this is not a register
-    wait 1 gpio CLK_PIN             ; Wait for Phi2 High
-    jmp pin skip [9]                ; Skip if we are not selected, and wait for tMDS
-    in pins, 23
-    push
+    mov isr, y          side 1  ; Move base address of register data
+    wait 0 gpio RE_PIN  side 1  ; Wait for a RE to turn on
+    jmp pin skip        side 1  ; We are not selected so wait for the next read req
+    in pins, 16         side 1  ; Shift in lower 16 bits of address
+    mov osr, ~null      side 1
+    out pindirs, 8      side 1
+    pull block          side 1  ; Wait for data available
+    out pins, 8         side 1  ; Shift out the data
+    mov osr, null       side 0
+    wait 1 gpio RE_PIN  side 0  ; Ack the request and wait for RE to drop
+    out pindirs, 8      side 1
 .wrap

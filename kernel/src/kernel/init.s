@@ -1,5 +1,5 @@
 ;
-; Copyright 2024 Craig Courtney
+; Copyright 2025 Craig Courtney
 ;
 ; Redistribution and use in source and binary forms, with or without
 ; modification, are permitted provided that the following conditions are met:
@@ -28,24 +28,26 @@
 ; POSSIBILITY OF SUCH DAMAGE.
 ;
 
-.global __ZEROPAGE_LOAD__, __ZEROPAGE_SIZE__
-.global __STACK_START__, __STACK_SIZE__
-.global __RODATA_LOAD__
-.global __DATA_LOAD__, __DATA_RUN__, __DATA_SIZE__
-.global __BSS_LOAD__, __BSS_SIZE__
-.global __DIRECT_START__
-.global __PCODE_START__
+.import __STACK_START__, __STACK_SIZE__
+.import __RODATA_LOAD__
+.import __DATA_LOAD__, __DATA_RUN__, __DATA_SIZE__
+.import __BSS_LOAD__, __BSS_SIZE__
+.import __DIRECT_START__
+
+.import serial_init, serial_put
 
 .include "gw816.inc"
 .include "kernel.inc"
 
-.include "debug.inc"
+.include "print.inc"
 .include "ascii.inc"
-.include "monitor.inc"
+.include "ringbuffer.inc"
 
 .zeropage
 ;-------------------------------------------------------------------------------
 MAX_SEGMENT:    .word $0000
+test_head: .byte $00
+test_tail: .byte $00
 
 .rodata
 ;-------------------------------------------------------------------------------
@@ -65,16 +67,12 @@ str_welcome_end:
 
 .bss
 ;-------------------------------------------------------------------------------
-KRNL_VEC_BREAK:
-                .word $0000
-                .word $0000
-
+test_buffer: .res 256
 .code
 ;-------------------------------------------------------------------------------
 KERNEL_START:
 .scope
                 SET_NATIVE_MODE
-                SET_REGISTER SMC_SCR, SCR_LED_SMASK, SCR_LED_FAST
                 SET_MX_16BIT
 
                 lda #__DIRECT_START__
@@ -83,103 +81,148 @@ KERNEL_START:
                 lda #__STACK_START__ + __STACK_SIZE__ - 1
                 tcs
 
-clear_zeropage: SET_M_8BIT
+                SET_M_8BIT
+
+; Zero out ZP data
                 ldx #$0000
 :               stz $00, x
                 inx
                 cpx #$0100
                 bne :-
 
-clear_bss:      ldx #$0000
+; Zero non-initialized data segment RAM
+                ldx #$0000
 :               cpx #__BSS_SIZE__
                 beq init_data
                 stz __BSS_LOAD__, x
                 inx
                 bra :-
 
-init_data:      ldx #$0000
-:               cpx #__DATA_SIZE__
-                beq init_mmu
-                lda __DATA_LOAD__, x
-                sta __DATA_RUN__, x
-                inx
-                bra :-
-
-init_mmu:       SET_M_16BIT
-
-    ; Seg $000 is global access (relocated to process specific seg)
-                ldx #$0000
-                stx MMU_ACL_SEG
-                lda #ACL_MODE_GLOB
-                sta MMU_ACL
-
-    ; Seg $001-$0CF contains ROM executable code
-                inx
-                lda #ACL_READ_ONLY
-                MMU_FILL_ACL(__RODATA_LOAD__ >> 12)
-
-    ; Seg $0D0-$DF contains read-only data that has no code
-    ; X set to $0D0 from previous fill
-                lda #ACL_READ_ONLY|ACL_NO_EXEC
-                MMU_FILL_ACL(__DATA_RUN__ >> 12)
-
-    ; Seg $00E0-$0FF contains read-write data and IO but no code
-    ; X set to $0E0 from previous fill
-                lda #ACL_NO_EXEC
-                MMU_FILL_ACL(__PCODE_START__ >> 12)
-
-init_monitor:   lda #MONITOR_BREAK
-                sta KRNL_VEC_BREAK
-                stz KRNL_VEC_BREAK  + 2
-
-find_max_seg:                       ; Disable VRAM so we can find all RAM
-                SET_M_8BIT
-                lda #MMC_VRAM_DISABLE
-                tsb MMU_MMC
+; Copy initialized data segment to RAM
+init_data:
                 SET_M_16BIT
 
-    ;  Reset MR0 to $00000000
-                stz MR0L
-                stz MR0H
-                stz MAX_SEGMENT
+                lda #__DATA_SIZE__
+                beq shadow_copy
+                dec
+                ldx #(__DATA_LOAD__ & $ffff)
+                ldy #(__DATA_RUN__ & $ffff)
+                mvn #^__DATA_LOAD__,#^__DATA_RUN__
 
-    ; Set index to the first segment to test kernel / romstrap
-    ; require the first bank of RAM to exist/work so we just start
-    ; testing at bank one.
-                ldx #$0100
+; Shadow Copy Kernel CODE into RAM to run faster
+shadow_copy:
+                lda #$3FFF
+                ldx #$C000
+                ldy #$C000
+                mvn #$00,#$00
 
-@loop:          stx MR0L+1          ; Replace the upper 12bits of MR0 address
-                lda #$5115
-                sta [MR0]
-                cmp [MR0]
-                bne @done           ; If readback does we are outside working RAM
-                stx MAX_SEGMENT
-                inx
-                cpx #$1000          ; We only support 16MB of RAM
-                bne @loop
+; We can now turn off ROM
+                SET_M_8BIT
+                lda MMU_MMC
+                ora #MMC_ROM_DISABLE
+                sta MMU_MMC
+                SET_M_16BIT
 
-    ; Reenable VRAM so we can find all RAM
- @done:         SET_M_8BIT
-                lda #MMC_VRAM_DISABLE
-                trb MMU_MMC
-
-                SET_REGISTER SMC_SCR, SCR_LED_SMASK, SCR_LED_ON
-
+                jsr serial_init
+;find_max_seg:                       ; Disable VRAM so we can find all RAM
+;                SET_M_8BIT
+;                lda #MMC_VRAM_DISABLE
+;                tsb MMU_MMC
+;                SET_M_16BIT
+;
+;    ;  Reset MR0 to $00000000
+;                stz MR0L
+;                stz MR0H
+;                stz MAX_SEGMENT
+;
+;    ; Set index to the first segment to test kernel / romstrap
+;    ; require the first bank of RAM to exist/work so we just start
+;    ; testing at bank one.
+;                ldx #$0100
+;
+;@loop:          stx MR0L+1          ; Replace the upper 12bits of MR0 address
+;                lda #$5115
+;                sta [MR0]
+;                cmp [MR0]
+;                bne @done           ; If readback does we are outside working RAM
+;                stx MAX_SEGMENT
+;                inx
+;                cpx #$1000          ; We only support 16MB of RAM
+;                bne @loop
+;
+;    ; Reenable VRAM so we can find all RAM
+; @done:         SET_M_8BIT
+;                lda #MMC_VRAM_DISABLE
+;                trb MMU_MMC
+;
+;                SET_REGISTER SMC_SCR, SCR_LED_SMASK, SCR_LED_ON
+;
     ; Print Welcome
                 SET_M_16BIT
+
+                cli
+
                 lda #str_welcome_start
-                jsr DEBUG_SPRINT
+                jsr print_string
 
                 lda MAX_SEGMENT
                 inc
                 asl
                 asl
-                jsr DEBUG_HEX_WORD
+                jsr print_hex_word
 
                 lda #str_welcome_end
-                jsr DEBUG_SPRINT
+                jsr print_string
 
-                cli
+                SET_MX_8BIT
+
+                lda z:test_head
+                jsr print_hex_byte
+                lda z:test_tail
+                jsr print_hex_byte
+                lda #' '
+                jsr serial_put
+
+                lda #$01
+                RING_BUF_WRITE test_buffer, test_head, test_tail
+
+                lda z:test_head
+                jsr print_hex_byte
+                lda z:test_tail
+                jsr print_hex_byte
+                lda #' '
+                jsr serial_put
+
+                lda z:test_tail        ; check to see if we have enough room
+                sec
+                sbc z:test_head
+                jsr print_hex_byte
+                lda #' '
+                jsr serial_put
+
+                lda #$02
+                RING_BUF_WRITE test_buffer, test_head, test_tail
+                lda #$03
+                RING_BUF_WRITE test_buffer, test_head, test_tail
+                lda #$04
+                RING_BUF_WRITE test_buffer, test_head, test_tail
+                lda #$05
+                RING_BUF_WRITE test_buffer, test_head, test_tail
+                lda #$06
+                RING_BUF_WRITE test_buffer, test_head, test_tail
+
+                lda z:test_head
+                jsr print_hex_byte
+                lda z:test_tail
+                jsr print_hex_byte
+                lda #' '
+                jsr serial_put
+
+                RING_BUF_READ test_buffer, test_head, test_tail
+                lda z:test_head
+                jsr print_hex_byte
+                lda z:test_tail
+                jsr print_hex_byte
 
                 brk
 .endscope

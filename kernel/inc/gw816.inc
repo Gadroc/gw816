@@ -149,63 +149,48 @@ VEC_EMU_RESETB      = $00FFFC
 VEC_EMU_IRQB_BRK    = $00FFFE
 
 ;===============================================================================
-; SMC (Clio)
+; UART Registers
 ;===============================================================================
 ; Register Addresses
 ;-------------------------------------------------------------------------------
-SMC_SCR  = $00FFC0 ; System Control Register
-SMC_RDR  = $00FFC1 ; Rom Data Regiseter
-SMC_ISR  = $00FFC2 ; Interrupt Status Register
-SMC_ICR  = $00FFC3 ; Interrupt Control Register
-SMC_CDR  = $00FFC4 ; Console Data Register
-SMC_KDR  = $00FFC5 ; Keyboard Data Register
-SMC_MDR  = $00FFC6 ; Mouse Data Register
-SMC_TCR  = $00FFC7 ; Timer Control Register
-SMC_TMC  = $00FFC8 ; Timer Counter
-SMC_TMCL = $00FFC8 ; Timer Counter Low Register
-SMC_TMCH = $00FFC9 ; Timer Coutner High Register
-SMC_MCR  = $00FFCA ; Millisecond Clock Register (32-bit ms since reset)
+UART_THR        = $00BFA0   ; Transmit Data Hold Register
+UART_SCR        = $00BFA1   ; Scratch Register
+UART_ISR        = $00BFA2   ; Interrupt Status Register
+UART_RBR        = $00BFA3   ; Receive Buffer Register
+UART_DIV        = $00BFA4   ; Baudrate Divisor
+UART_DIVL       = $00BFA4   ; Baudrate Divisor Low Register
+UART_DIVH       = $00BFA5   ; Baudrate Divisor High Register
+UART_IER        = $00BFA6   ; Interrupt Enable Register
 ;-------------------------------------------------------------------------------
-; SCR Flags
+; UART Flags
 ;-------------------------------------------------------------------------------
-SCR_ROM_RESET       = %01000000
-SCR_ROM_COMPLETE    = %10000000
-SCR_LED_MASK        = %00000011
-SCR_LED_SMASK       = %11111100
-SCR_LED_OFF         = %00000000
-SCR_LED_ON          = %00000001
-SCR_LED_SLOW        = %00000010
-SCR_LED_FAST        = %00000011
-;-------------------------------------------------------------------------------
-; ISR Flags
-;-------------------------------------------------------------------------------
-ISR_CONSOLE_TX_RDY  = %00000001
-ISR_CONSOLE_RX_RDY  = %00000010
-ISR_KEYBOARD_TX_RDY = %00000100
-ISR_KEYBOARD_RX_RDY = %00001000
-ISR_MOUSE_RX_RDY    = %00010000
+UART_RX_FRAME_ERR  = %10000000   ; Frame Error Bit
+UART_RX_OVRRUN_ERR = %01000000   ; Overrun Error Bit
+UART_TX_EMPTY      = %00100000   ; Transmit Data Hold Register Emtpy Bit
+UART_RX_FULL       = %00010000   ; Receive Buffer Full Bit
+
 
 ;===============================================================================
 ; MMU (Atlas) Registers
 ;===============================================================================
 ; Register Addresses
 ;-------------------------------------------------------------------------------
-MMU_AASID       = $00FFA8   ; Current Active Address Space ID (ASID)
-MMU_MMC         = $00FFA9   ; Memory Mapping Control Register
-MMU_S0_OFFSET   = $00FFAA   ; Segment Zero Offset
-MMU_S0_OFFSET_L = $00FFAA   ; Page Zero Offset Low Byte
-MMU_S0_OFFSET_H = $00FFAB   ; Page Zero Offset High Byte
-MMU_ACL_SEG     = $00FFAC   ; ACL Segment
-MMU_ACL_SEG_L   = $00FFAC   ; ACL Segment Low Byte
-MMU_ACL_SEG_H   = $00FFAD   ; ACL Segment High Byte
-MMU_ACL         = $00FFAE   ; ACL
-MMU_ACL_ASID    = $00FFAE   ; ACL - ASID
-MMU_ACL_FLAGS   = $00FFAF   ; ACL - Flags
+MMU_AASID       = $00BFE0   ; Current Active Address Space ID (ASID)
+MMU_MMC         = $00BFE1   ; Memory Mapping Control Register
+MMU_S0_OFFSET   = $00BFE2   ; Segment Zero Offset
+MMU_S0_OFFSET_L = $00BFE3   ; Page Zero Offset Low Byte
+MMU_S0_OFFSET_H = $00BFE4   ; Page Zero Offset High Byte
+MMU_ACL_SEG     = $00BFE5   ; ACL Segment
+MMU_ACL_SEG_L   = $00BFE6   ; ACL Segment Low Byte
+MMU_ACL_SEG_H   = $00BFE7   ; ACL Segment High Byte
+MMU_ACL         = $00BFE8   ; ACL
+MMU_ACL_ASID    = $00BFE9   ; ACL - ASID
+MMU_ACL_FLAGS   = $00BFEA   ; ACL - Flags
 ;-------------------------------------------------------------------------------
 ; MMC Flags
 ;-------------------------------------------------------------------------------
 MMC_VRAM_DISABLE    = %10000000   ; VRAM Disable Bit
-MMC_USER_MOD_EN     = %01000000   ; User Mode Enabled Bit
+MMC_ROM_DISABLE     = %01000000   ; ROM Disable Bit
 MMC_ABORT_CODE_MASK = %00000111   ; Abort Code Mask
 ;-------------------------------------------------------------------------------
 ; ACL 16-Bit Access Flags

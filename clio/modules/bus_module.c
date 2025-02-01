@@ -32,7 +32,7 @@
 volatile uint8_t __attribute__ ((aligned (BUS_DATA_SIZE))) bus_data[BUS_DATA_SIZE];
 
 /**
- * Initializes the PIO Routines for register events
+ * Initialize the PIO routines for bus read requests.
  *
  * @param divider_int Initial clock divider integer portion
  * @param divider_frac  Initial clock divider fraction portion
@@ -42,16 +42,13 @@ void bus_control_init(uint16_t divider_int, uint8_t divider_frac) {
     pio_sm_claim(BUS_PIO, BUS_CONTROL_SM);
     pio_sm_config config = bus_control_program_get_default_config(offset);
     sm_config_set_out_pins(&config, BUS_DATA_PIN_BASE, DATA_PIN_COUNT);
-    sm_config_set_in_pins(&config, BUS_ADDR_BASE_PIN);
-    sm_config_set_in_shift(&config, true, false, ADDRESS_PIN_COUNT);
     sm_config_set_jmp_pin(&config, BUS_CS_PIN);
-
     sm_config_set_clkdiv_int_frac(&config, divider_int, divider_frac);
     pio_sm_init(BUS_PIO, BUS_CONTROL_SM, offset, &config);
 
-    pio_sm_set_consecutive_pindirs(BUS_PIO, BUS_CONTROL_SM, BUS_ADDR_BASE_PIN, 14, false);
-    pio_sm_set_consecutive_pindirs(BUS_PIO, BUS_CONTROL_SM, BUS_DATA_PIN_BASE, 8, true);
-    pio_sm_set_consecutive_pindirs(BUS_PIO, BUS_CONTROL_SM, BUS_CLK_PIN, 3, false);
+    pio_sm_set_consecutive_pindirs(BUS_PIO, BUS_CONTROL_SM, BUS_DATA_PIN_BASE, 8, false);
+    pio_sm_set_consecutive_pindirs(BUS_PIO, BUS_CONTROL_SM, BUS_RE_PIN, 1, false);
+    pio_sm_set_consecutive_pindirs(BUS_PIO, BUS_CONTROL_SM, BUS_CS_PIN, 1, false);
 
     pio_sm_set_enabled(BUS_PIO, BUS_CONTROL_SM, true);
 }
@@ -71,6 +68,7 @@ void bus_read_init(uint16_t divider_int, uint8_t divider_frac) {
     sm_config_set_in_pins(&config, BUS_ADDR_BASE_PIN);
     sm_config_set_in_shift(&config, false, true, ADDRESS_PIN_COUNT);
     sm_config_set_jmp_pin(&config, BUS_CS_PIN);
+    sm_config_set_sideset_pins(&config, BUS_ACK_PIN);
     sm_config_set_clkdiv_int_frac(&config, divider_int, divider_frac);
     pio_sm_init(BUS_PIO, BUS_READ_SM, offset, &config);
 
@@ -79,9 +77,12 @@ void bus_read_init(uint16_t divider_int, uint8_t divider_frac) {
     pio_sm_exec_wait_blocking(BUS_PIO, BUS_READ_SM, pio_encode_pull(false, true));
     pio_sm_exec_wait_blocking(BUS_PIO, BUS_READ_SM, pio_encode_mov(pio_y, pio_osr));
 
-    pio_sm_set_consecutive_pindirs(BUS_PIO, BUS_READ_SM, BUS_ADDR_BASE_PIN, 14, false);
+    pio_sm_set_consecutive_pindirs(BUS_PIO, BUS_READ_SM, BUS_ADDR_BASE_PIN, 16, false);
     pio_sm_set_consecutive_pindirs(BUS_PIO, BUS_READ_SM, BUS_DATA_PIN_BASE, 8, false);
-    pio_sm_set_consecutive_pindirs(BUS_PIO, BUS_READ_SM, BUS_CLK_PIN, 3, false);
+    pio_sm_set_consecutive_pindirs(BUS_PIO, BUS_READ_SM, BUS_ACK_PIN, 1, true);
+    pio_sm_set_consecutive_pindirs(BUS_PIO, BUS_READ_SM, BUS_RE_PIN, 1, false);
+    pio_sm_set_consecutive_pindirs(BUS_PIO, BUS_READ_SM, BUS_CS_PIN, 1, false);
+
 
     pio_sm_set_enabled(BUS_PIO, BUS_READ_SM, true);
 
@@ -119,35 +120,15 @@ void bus_read_init(uint16_t divider_int, uint8_t divider_frac) {
 #endif
 }
 
-/**
- * Initializes the PIO Routines for register events
- *
- * @param divider_int Initial clock divider integer portion
- * @param divider_frac  Initial clock divider fraction portion
- */
-void reg_events_init(uint16_t divider_int, uint8_t divider_frac) {
-    uint offset = pio_add_program(BUS_PIO, &reg_events_program);
-    pio_sm_claim(BUS_PIO, REG_EVENTS_SM);
-    pio_sm_config config =  reg_events_program_get_default_config(offset);
-    sm_config_set_in_pins(&config, BUS_ADDR_BASE_PIN);
-    sm_config_set_in_shift(&config, true, false, 32);
-    sm_config_set_jmp_pin(&config, BUS_CS_PIN);
-    sm_config_set_fifo_join(&config, PIO_FIFO_JOIN_RX );
-    sm_config_set_clkdiv_int_frac(&config, divider_int, divider_frac);
-    pio_sm_init(BUS_PIO, REG_EVENTS_SM, offset, &config);
-
-    pio_sm_set_consecutive_pindirs(BUS_PIO, REG_EVENTS_SM, BUS_ADDR_BASE_PIN, 23, false);
-    pio_sm_set_consecutive_pindirs(BUS_PIO, REG_EVENTS_SM, BUS_CLK_PIN, 3, false);
-
-    pio_sm_set_enabled(BUS_PIO, REG_EVENTS_SM, true);
+void bus_reset() {
+    pio_sm_restart(BUS_PIO, BUS_READ_SM);
 }
 
 void bus_setup_gpio_pin(uint gpio) {
     pio_gpio_init(BUS_PIO, gpio);
     gpio_set_pulls(gpio, true, true);
     gpio_set_input_hysteresis_enabled(gpio, false);
-    //hw_set_bits(&pio0->input_sync_bypass, 1u << gpio);
-    //hw_set_bits(&pio1->input_sync_bypass, 1u << gpio);
+    hw_set_bits(&BUS_PIO->input_sync_bypass, 1u << gpio);
 }
 
 void bus_init() {
@@ -159,8 +140,11 @@ void bus_init() {
         bus_setup_gpio_pin(BUS_ADDR_BASE_PIN + i);
     }
     bus_setup_gpio_pin(BUS_CS_PIN);
-    bus_setup_gpio_pin(BUS_RW_PIN);
-    bus_setup_gpio_pin(BUS_CLK_PIN);
+    bus_setup_gpio_pin(BUS_RE_PIN);
+    bus_setup_gpio_pin(BUS_ACK_PIN);
+
+    // hw_set_bits(BUS_PIO->input_sync_bypass, 1u << BUS_RE_PIN);
+    // hw_set_bits(&pio1->input_sync_bypass, 1u << BUS_RE_PIN);
 
     // Raise DMA above CPU on crossbar
     bus_ctrl_hw->priority |=
@@ -168,6 +152,5 @@ void bus_init() {
             BUSCTRL_BUS_PRIORITY_DMA_W_BITS;
 
     bus_read_init(1, 0);
-    reg_events_init(1,0);
-    bus_control_init(1, 0);
+    //bus_control_init(1,0);
 }

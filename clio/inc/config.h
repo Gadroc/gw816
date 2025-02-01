@@ -30,19 +30,16 @@
 #define DISPLAY_MAX 20
 #define USE_DMA
 
-#define ADDRESS_PIN_COUNT    14
+#define ADDRESS_PIN_COUNT    16
 #define DATA_PIN_COUNT       8
 #define BUS_DATA_SIZE        (1<<ADDRESS_PIN_COUNT)
 
-#define IRQ_PIN               0
-#define BUS_ADDR_BASE_PIN     1
-#define BUS_DATA_PIN_BASE     15
-#define BUS_RW_PIN            23
-#define SW_PIN                24
-#define LED_PIN               25
-#define BUS_RESET_PIN         26
-#define BUS_CLK_PIN           27
-#define BUS_CS_PIN            28
+#define BUS_ADDR_BASE_PIN     0
+#define BUS_DATA_PIN_BASE     16
+#define BUS_RESET_REQ_PIN     26
+#define BUS_ACK_PIN           27
+#define BUS_RE_PIN            28
+#define BUS_CS_PIN            29
 
 #define BUS_PIO             pio0
 #define BUS_CONTROL_SM      0

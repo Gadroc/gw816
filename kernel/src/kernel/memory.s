@@ -1,5 +1,5 @@
 ;
-; Copyright 2024 Craig Courtney
+; Copyright 2025 Craig Courtney
 ;
 ; Redistribution and use in source and binary forms, with or without
 ; modification, are permitted provided that the following conditions are met:
@@ -28,35 +28,3 @@
 ; POSSIBILITY OF SUCH DAMAGE.
 ;
 
-;===============================================================================
-; Since Clio does not have enough address lines to fully emulate ROM, we have
-; a small section of bootstrap ROM which will sequentially read ROM code
-; via RDR register and copies it into RAM.  It will then tranfser
-; control to the Kenerl.  The boostrap code lives in the address space
-; of the native interrupt vector tabel.  The kernel code is responsbile for
-; setting interrupt vectors during initialization.
-;===============================================================================
-
-.include "gw816.inc"
-
-kernel_start = $D000
-
-.code
-bootstrap:
-                SET_NATIVE_MODE
-                SET_X_16BIT
-                ldx #kernel_start
-loop:           lda SMC_RDR
-                sta a:$0000,x
-                stz a:$1000
-                cmp a:$0000,x
-                inx
-                lda SMC_SCR
-                bit #SCR_ROM_COMPLETE
-                beq loop
-                brk
-                ;jmp (kernel_start)
-
-.segment "VECTORS"
-    .word   bootstrap
-    .word   $0000

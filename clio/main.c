@@ -30,9 +30,6 @@
 #include "reg_module.h"
 #include "bus_module.h"
 #include "rom_module.h"
-#include "serial_module.h"
-#include "led_module.h"
-#include "irq_module.h"
 
 static bool _reset = true;
 
@@ -53,7 +50,7 @@ _Noreturn static __attribute__((optimize("O1")))  void bus_loop() {
 #ifndef USE_DMA
         if (BUS_READ_AVAILABLE) {
             uint32_t raw = BUS_PIO->rxf[BUS_READ_SM];
-            uint16_t address = raw & 0x3FFF;
+            uint16_t address = raw & 0xFFFF;
             pio_sm_put(BUS_PIO, BUS_READ_SM, bus_data[address]);
             if (display_count < DISPLAY_MAX) {
                 printf("BUS R A:%04x D:%02x RAW:%08lx\n", address, bus_data[address], raw);
@@ -62,40 +59,6 @@ _Noreturn static __attribute__((optimize("O1")))  void bus_loop() {
         }
 #endif
 
-        if (REG_EVENT_AVAILABLE) {
-            uint32_t event = NEXT_REG_EVENT;
-
-#ifdef DISPLAY_ACTIONS
-            if (display_count < DISPLAY_MAX) {
-                 printf("REG %1s A:%04x D:%02x REG:%02x RAW:%08lx\n", REG_EVENT_IS_READ(event) ? "R" : "W", REG_EVENT_ADDR(event),
-                       REG_EVENT_DATA(event), bus_data[REG_EVENT_ADDR(event)], event);
-                display_count++;
-            }
-#endif
-
-            if (REG_EVENT_IS_READ(event)) {
-                switch (REG_EVENT_ADDR(event)) {
-
-                    case REG_ADDR_CDR:
-                        SERIAL_NEXT_BYTE(console_uart_rx_buffer, ISR_CONSOLE_RX_READY);
-                        break;
-                }
-            } else {
-                switch (REG_EVENT_ADDR(event)) {
-                    case REG_ADDR_SCR:
-                        led_set(REG_EVENT_DATA(event) & SCR_LED_MASK);
-                        break;
-
-                    case REG_ADDR_CDR:
-                        SERIAL_TX_BYTE(console_uart_tx_buffer, ISR_CONSOLE_TX_READY, REG_EVENT_DATA(event));
-                        break;
-                }
-
-                if (REG_EVENT_ADDR(event) >= REG_ADDR_VECTORS) {
-                    REGISTER(REG_EVENT_ADDR(event)) = REG_EVENT_DATA(event);
-                }
-            }
-        }
     }
 }
 
@@ -105,33 +68,6 @@ _Noreturn static __attribute__((optimize("O1")))  void bus_loop() {
  */
 _Noreturn void peripheral_loop() {
     while (true) {
-        if (gpio_get(BUS_RESET_PIN)) {
-            _reset = false;
-
-            // Check UART Buffers
-            serial_tasks();
-
-            // Manage leds
-            led_tasks();
-
-            // Update IRQ Signals
-            irq_tasks();
-
-        } else {
-            if (!_reset) {
-#ifdef DISPLAY_ACTIONS
-                display_count = 0;
-                printf("\n** RESET ** %08p\n", bus_data);
-
-#endif
-
-                rom_reset();
-                serial_reset();
-                led_reset();
-
-                _reset = true;
-            }
-        }
     }
 }
 
@@ -143,15 +79,12 @@ int main() {
     // target system is 8Mhz
     set_sys_clock_khz(256000,true);
 
-    // Setup RESET sense pin
-    gpio_init(BUS_RESET_PIN);
-    gpio_set_dir(BUS_RESET_PIN, false);
+    stdio_usb_init();
 
-    // Initialize IRQ handler
-    irq_init();
-
-    // Initialize serial ports
-    serial_init();
+    // Setup RESET_REQ sense pin
+    gpio_init(BUS_RESET_REQ_PIN);
+    gpio_set_dir(BUS_RESET_REQ_PIN, true);
+    gpio_clr_mask(1 << BUS_RESET_REQ_PIN);
 
     // Initialize the address and data bus programs
     bus_init();
@@ -159,11 +92,10 @@ int main() {
     // Initialize rom
     rom_init();
 
-    // Initialize led control
-    led_init();
-
     // Start the bus processing loop
     multicore_launch_core1(bus_loop);
+
+    gpio_set_mask(1 << BUS_RESET_REQ_PIN);
 
     // Start the peripheral loop
     peripheral_loop();

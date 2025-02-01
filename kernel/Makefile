@@ -6,8 +6,8 @@ LD = ld65
 LDFLAGS = -m $@.map -Ln $@.debug
 
 SOURCES = src/kernel/init.s src/kernel/registers.s src/kernel/irq.s \
-		  src/kernel/debug.s src/kernel/monitor.s src/kernel/jump_table.s \
-		  src/kernel/vectors.s
+		  src/kernel/monitor.s src/kernel/serial.s src/fonts/charset.s \
+		  src/kernel/vectors.s src/kernel/print.s
 .SUFFIXES:
 .PHONY: all clean
 all: kernel install

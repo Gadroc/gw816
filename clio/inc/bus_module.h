@@ -35,6 +35,8 @@ extern volatile uint8_t bus_data[BUS_DATA_SIZE];
  */
 void bus_init();
 
+void bus_reset();
+
 // Utility defines to check and retrieve data from bus_read PIO program.  Using these bypass overhead
 // of SDK since we are very timing critical when using them.
 #define BUS_READ_AVAILABLE          !(BUS_PIO->fstat & (1u << (PIO_FSTAT_RXEMPTY_LSB + BUS_READ_SM)))

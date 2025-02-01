@@ -30,9 +30,12 @@
 
 .include "gw816.inc"
 .include "kernel.inc"
-.include "monitor.inc"
 .include "ascii.inc"
-.include "debug.inc"
+.include "print.inc"
+
+.export monitor_break
+
+.import serial_put, serial_get
 
 .import __DIRECT_START__
 
@@ -169,7 +172,7 @@ is_before:
 .code
 ;-------------------------------------------------------------------------------
 
-MONITOR_BREAK:
+monitor_break:
 ;-------------------------------------------------------------------------------
 ; Monitor entry point when break is encountered.
 ;-------------------------------------------------------------------------------
@@ -232,19 +235,19 @@ display_registers:
                 SET_MX_16BIT
     ; Display Register Labels
                 lda #str_mon_reg
-                jsr DEBUG_SPRINT
+                jsr print_string
 
     ; Program Bank
                 SET_M_8BIT
                 lda mon_reg_pbx
-                jsr DEBUG_HEX_BYTE
+                jsr print_hex_byte
 
                 jsr print_space
 
     ; Program Counter
                 SET_M_16BIT
                 lda mon_reg_pcx
-                jsr DEBUG_HEX_WORD
+                jsr print_hex_word
 
                 jsr print_space
                 jsr print_space
@@ -257,7 +260,7 @@ display_registers:
                 tax
                 lda #'0'
                 adc #0
-                jsr DEBUG_PUT_CHAR
+                jsr serial_put
                 dey
                 bne sr_bit_loop
 
@@ -266,7 +269,7 @@ display_registers:
 
 register_loop:  jsr print_space
                 lda mon_reg_cx,x
-                jsr DEBUG_HEX_WORD
+                jsr print_hex_word
                 inx
                 inx
                 cpx #mon_reg_dbx-mon_reg_cx
@@ -275,7 +278,7 @@ register_loop:  jsr print_space
                 SET_M_8BIT
                 jsr print_space
                 lda mon_reg_dbx
-                jsr DEBUG_HEX_BYTE
+                jsr print_hex_byte
 
     ; Fall Through to Command Input
 .endscope
@@ -288,7 +291,7 @@ monitor_command:
 .scope
                 SET_M_16BIT
                 lda #str_prompt
-                jsr DEBUG_SPRINT
+                jsr print_string
 
                 ; Read in command line
                 jsr read_line
@@ -331,7 +334,7 @@ monitor_error:
 ;
 ;-------------------------------------------------------------------------------
 .scope
-                jsr DEBUG_SPRINT
+                jsr print_string
                 jmp monitor_command_clear
 .endscope
 
@@ -697,10 +700,10 @@ print_start_address:
 .scope
                 SET_M_8BIT
                 lda MR6H
-                jsr DEBUG_HEX_BYTE
+                jsr print_hex_byte
                 SET_M_16BIT
                 lda MR6L
-                jmp DEBUG_HEX_WORD
+                jmp print_hex_word
 .endscope
 
 
@@ -717,7 +720,7 @@ print_memory:
 
                 SET_M_16BIT
                 lda #str_memline_start
-                jsr DEBUG_SPRINT
+                jsr print_string
 
                 ; Display Address
                 jsr print_start_address
@@ -727,14 +730,14 @@ print_memory:
                 ldy #$00
 hex_loop:       jsr print_space
                 lda [MR6],y
-                jsr DEBUG_HEX_BYTE
+                jsr print_hex_byte
                 iny
                 cpy #$10
                 bcc hex_loop
 
                 SET_M_16BIT
                 lda #str_memline_ascii
-                jsr DEBUG_SPRINT
+                jsr print_string
 
                 SET_M_8BIT
                 ldy #$00
@@ -746,14 +749,14 @@ ascii_loop:     lda [MR6],y
                 bcc print
 nonprintable:   lda #'.'
 
-print:          jsr DEBUG_PUT_CHAR
+print:          jsr serial_put
                 iny
                 cpy #$10
                 bcc ascii_loop
 
 retrun:         SET_M_16BIT
                 lda #str_memline_end
-                jsr DEBUG_SPRINT
+                jsr print_string
 
                 plp
                 ply
@@ -901,15 +904,15 @@ read_line:
                 ; Print out current content of the buffer
                 SET_M_16BIT
                 lda #input_buffer
-                jsr DEBUG_SPRINT
+                jsr print_string
 
                 ; Turn on the cursor
                 lda #str_cursor_on
-                jsr DEBUG_SPRINT
+                jsr print_string
 
                 SET_M_8BIT
 input_loop:     nop
-                jsr DEBUG_GET_CHAR
+                jsr serial_get
                 bcs input_loop
 
                 ; Check to see if return has been received
@@ -934,22 +937,22 @@ input_loop:     nop
                 bcs alert
                 sta input_buffer,x
                 inx
-                jsr DEBUG_PUT_CHAR
+                jsr serial_put
                 bra input_loop
 
 alert:          lda #ASC_BELL
-                jsr DEBUG_PUT_CHAR
+                jsr serial_put
                 bra input_loop
 
 backspace:      txa
                 beq alert
                 dex
                 lda #ASC_BS
-                jsr DEBUG_PUT_CHAR
+                jsr serial_put
                 lda #ASC_SPACE
-                jsr DEBUG_PUT_CHAR
+                jsr serial_put
                 lda #ASC_BS
-                jsr DEBUG_PUT_CHAR
+                jsr serial_put
                 bra input_loop
 
 return:         lda #$00
@@ -958,7 +961,7 @@ return:         lda #$00
 
                 SET_M_16BIT
                 lda #str_cursor_off
-                jsr DEBUG_SPRINT
+                jsr print_string
 
                 plp
                 rts
@@ -975,7 +978,7 @@ print_space:
                 php
                 SET_MX_8BIT
                 lda #ASC_SPACE
-                jsr DEBUG_PUT_CHAR
+                jsr serial_put
                 plp
                 rts
 .endscope

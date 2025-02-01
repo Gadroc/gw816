@@ -30,8 +30,13 @@
 
 .include "gw816.inc"
 .include "kernel.inc"
-.include "debug.inc"
 .include "ascii.inc"
+.include "print.inc"
+
+.import serial_irq
+.import monitor_break
+
+.export serial_irq_ret
 
 .rodata
 ;-------------------------------------------------------------------------------
@@ -63,16 +68,30 @@ str_brk_irq:
 .code
 ;-------------------------------------------------------------------------------
 IRQ_DEVICE_HANDLER:
-.scope
+                phb
+                phd
+                SET_MX_16BIT
+                pha
+                phx
+                phy
+
+                jmp serial_irq
+serial_irq_ret:
+
+                SET_MX_16BIT
+                ply
+                plx
+                pla
+                pld
+                plb
                 rti
-.endscope
 
 IRQ_EMU_HANDLER:
 .scope
                 SET_NATIVE_MODE
                 SET_MX_16BIT
                 lda #str_emu_irq
-                jsr DEBUG_SPRINT
+                jsr print_string
                 stp
 .endscope
 
@@ -80,7 +99,7 @@ IRQ_NMI_HANDLER:
 .scope
                 SET_MX_16BIT
                 lda #str_nmi_irq
-                jsr DEBUG_SPRINT
+                jsr print_string
                 ; TODO Start monitor
                 stp
 .endscope
@@ -96,15 +115,15 @@ IRQ_BRK_HANDLER:
                 phy
 
                 lda #str_brk_irq
-                jsr DEBUG_SPRINT
+                jsr print_string
 
-                jmp [KRNL_VEC_BREAK]
+                jmp monitor_break
 .endscope
 
 IRQ_ABORT_HANDLER:
 .scope
                 lda #str_abort_irq
-                jsr DEBUG_SPRINT
+                jsr print_string
                 ; TODO Start monitor
                 stp
 .endscope

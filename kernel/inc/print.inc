@@ -28,4 +28,4 @@
 ; POSSIBILITY OF SUCH DAMAGE.
 ;
 
-.global MONITOR_BREAK
+.global print_string, print_hex_byte, print_hex_word
